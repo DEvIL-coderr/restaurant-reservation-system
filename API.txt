@@ -1,0 +1,275 @@
+Absolutely. Here is the complete backend API checklist we have built so far, arranged in the order I recommend testing in Postman.
+Base URL:
+http://localhost:5000
+
+1. Server Test
+GET — Check server
+GET http://localhost:5000/
+
+Expected:
+Restaurant Reservation API is running
+
+2. User APIs
+Register Customer
+POST
+POST http://localhost:5000/api/users/register
+
+Body → raw → JSON
+{
+    "name": "Test Customer",
+    "email": "test@gmail.com",
+    "password": "Test@123",
+    "phone": "9876543210"
+}
+
+Expected:
+{
+    "message": "User registered successfully",
+    "user": {
+        ...
+        "role": "customer"
+    }
+}
+
+Login
+POST
+POST http://localhost:5000/api/users/login
+
+Body:
+{
+    "email": "test@gmail.com",
+    "password": "Test@123"
+}
+
+You'll receive:
+{
+    "message": "Login successful",
+    "token": "YOUR_TOKEN",
+    "user": {
+        "id": "...",
+        "name": "Test Customer",
+        "email": "test@gmail.com",
+        "role": "customer"
+    }
+}
+
+Copy the token. You'll need it for protected APIs.
+Get Profile
+GET
+GET http://localhost:5000/api/users/profile
+
+Headers:
+Authorization: Bearer YOUR_CUSTOMER_TOKEN
+
+3. Table APIs
+Get Available Tables
+This one is public.
+GET
+GET http://localhost:5000/api/tables/available?date=2026-10-10&time=19:00&guests=2
+
+You can also add category:
+GET http://localhost:5000/api/tables/available?date=2026-10-10&time=19:00&guests=2&category=Indoor
+
+No Authorization required.
+Expected:
+{
+    "tables": [...]
+}
+
+4. Admin Table APIs
+For these, use the admin token.
+Admin login:
+POST http://localhost:5000/api/users/login
+
+{
+    "email": "admin@restaurant.com",
+    "password": "Admin@123"
+}
+
+Copy the admin token.
+Get All Tables
+GET
+GET http://localhost:5000/api/tables
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+
+Add Table
+POST
+POST http://localhost:5000/api/tables
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+Content-Type: application/json
+
+Body:
+{
+    "tableNumber": 10,
+    "capacity": 4,
+    "category": "Indoor"
+}
+
+Update Table
+PUT
+PUT http://localhost:5000/api/tables/TABLE_ID
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+Content-Type: application/json
+
+Body example:
+{
+    "capacity": 6,
+    "category": "Outdoor",
+    "status": "available"
+}
+
+Delete Table
+DELETE
+DELETE http://localhost:5000/api/tables/TABLE_ID
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+
+5. Reservation APIs
+Create Reservation
+Customer token required.
+POST
+POST http://localhost:5000/api/reservations
+
+Headers:
+Authorization: Bearer CUSTOMER_TOKEN
+Content-Type: application/json
+
+Body:
+{
+    "table": "TABLE_ID",
+    "date": "2026-10-10T19:00:00",
+    "guests": 2
+}
+
+Get My Reservations
+GET
+GET http://localhost:5000/api/reservations
+
+Headers:
+Authorization: Bearer CUSTOMER_TOKEN
+
+Modify My Reservation
+PUT
+PUT http://localhost:5000/api/reservations/RESERVATION_ID
+
+Headers:
+Authorization: Bearer CUSTOMER_TOKEN
+Content-Type: application/json
+
+Example body:
+{
+    "date": "2026-10-10T20:00:00",
+    "guests": 3
+}
+
+Important
+If the reservation was already:
+confirmed
+
+after modification it becomes:
+pending
+
+so the admin must approve it again. ✅
+Cancel My Reservation
+PUT
+PUT http://localhost:5000/api/reservations/RESERVATION_ID/cancel
+
+Headers:
+Authorization: Bearer CUSTOMER_TOKEN
+
+No body required.
+6. Admin Reservation APIs
+Get All Reservations
+GET
+GET http://localhost:5000/api/reservations/all
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+
+Admin Update Reservation
+PUT
+PUT http://localhost:5000/api/reservations/admin/RESERVATION_ID
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+Content-Type: application/json
+
+Confirm booking
+{
+    "status": "confirmed"
+}
+
+Cancel booking
+{
+    "status": "cancelled"
+}
+
+Change guest count
+{
+    "guests": 4
+}
+
+You can also combine them:
+{
+    "status": "confirmed",
+    "guests": 4
+}
+
+Delete Cancelled Reservation
+DELETE
+DELETE http://localhost:5000/api/reservations/admin/RESERVATION_ID
+
+Headers:
+Authorization: Bearer ADMIN_TOKEN
+
+⚠️ This only works when the reservation is already:
+cancelled
+
+Complete Postman Checklist
+You can test them in this order:
+1.  GET     /
+
+
+USER
+2.  POST    /api/users/register
+3.  POST    /api/users/login
+4.  GET     /api/users/profile
+
+
+5.  GET     /api/tables/available
+
+
+6.  POST    /api/tables              [ADMIN]
+7.  GET     /api/tables              [ADMIN]
+8.  PUT     /api/tables/:id          [ADMIN]
+9.  DELETE  /api/tables/:id          [ADMIN]
+
+
+10. POST    /api/reservations
+11. GET     /api/reservations
+12. PUT     /api/reservations/:id
+13. PUT     /api/reservations/:id/cancel
+
+
+14. GET     /api/reservations/all              [ADMIN]
+15. PUT     /api/reservations/admin/:id        [ADMIN]
+16. DELETE  /api/reservations/admin/:id        [ADMIN]
+
+Tokens
+Keep two tokens in Postman:
+CUSTOMER_TOKEN
+ADMIN_TOKEN
+
+Use:
+Authorization → Bearer Token
+
+For customer APIs, use CUSTOMER_TOKEN.
+For admin APIs, use ADMIN_TOKEN.
+That gives you all 16 API operations currently implemented in the backend.
