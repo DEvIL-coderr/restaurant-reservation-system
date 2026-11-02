@@ -376,7 +376,7 @@ const getAllReservations = async (req, res) => {
     try {
         const reservations = await Reservation.find()
             .populate("user", "name email phone")
-            .populate("table", "tableNumber capacity category");
+            .populate("table", "tableNumber capacity category perPersonPrice fullTablePrice");
 
         res.json({
             reservations
