@@ -47,6 +47,11 @@ const reservationSchema = new mongoose.Schema(
             default: ""
         },
 
+        paymentMethod: {
+            type: String,
+            enum: ["online", "pay_at_restaurant"],
+            default: "online"
+        },
         paymentStatus: {
             type: String,
             enum: ["not_required", "pending", "paid", "failed"],
