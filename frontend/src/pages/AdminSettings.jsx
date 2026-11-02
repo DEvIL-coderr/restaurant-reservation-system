@@ -20,6 +20,7 @@ function AdminSettings() {
     const [duration, setDuration] = useState(120);
     const [buffer, setBuffer] = useState(15);
     const [interval, setInterval] = useState(30);
+    const [bookingFee, setBookingFee] = useState(0);
     const [hours, setHours] = useState(DEFAULT_HOURS);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -42,6 +43,7 @@ function AdminSettings() {
                     setDuration(data.settings.reservationDurationMinutes ?? 120);
                     setBuffer(data.settings.bufferMinutes ?? 15);
                     setInterval(data.settings.slotIntervalMinutes ?? 30);
+                    setBookingFee(data.settings.bookingFee ?? 0);
                     if (data.settings.weeklyHours?.length === 7) {
                         const byDay = new Map(data.settings.weeklyHours.map((item) => [item.day, item]));
                         setHours(DAYS.map((day) => byDay.get(day) || DEFAULT_HOURS.find((item) => item.day === day)));
@@ -79,6 +81,7 @@ function AdminSettings() {
                     reservationDurationMinutes: Number(duration),
                     bufferMinutes: Number(buffer),
                     slotIntervalMinutes: Number(interval),
+                    bookingFee: Number(bookingFee),
                     weeklyHours: hours
                 })
             });
@@ -142,6 +145,15 @@ function AdminSettings() {
                                 <p style={{ marginTop: "18px", color: "#765c49" }}>
                                     Example: a 7:00 PM booking with a 2-hour duration and 15-minute buffer blocks the table until 9:15 PM.
                                 </p>
+                            </section>
+
+                            <section style={{ background: "#fff", padding: "24px", borderRadius: "14px", boxShadow: "0 4px 18px rgba(0,0,0,.05)" }}>
+                                <h2>Customer booking fee</h2>
+                                <p style={{ color: "#76695f" }}>Set a fixed fee in Indian Rupees for each new reservation. Existing reservations keep the fee saved when they were created.</p>
+                                <div style={{ ...styles.field, maxWidth: "320px", marginTop: "16px" }}>
+                                    <label style={styles.label} htmlFor="bookingFee">Booking fee (₹ per reservation)</label>
+                                    <input id="bookingFee" style={styles.input} type="number" min="0" max="100000" step="1" value={bookingFee} onChange={(e) => setBookingFee(e.target.value)} required />
+                                </div>
                             </section>
 
                             <section style={{ background: "#fff", padding: "24px", borderRadius: "14px", boxShadow: "0 4px 18px rgba(0,0,0,.05)" }}>
