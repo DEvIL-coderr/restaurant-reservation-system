@@ -16,100 +16,48 @@ function AdminDashboard() {
 
     return (
         <div className="page">
-
             <header className="navbar">
-
                 <div className="logo">
                     Restaurant Admin
                 </div>
 
                 <nav className="nav-links">
-
-                    <Link to="/admin">
-                        Dashboard
-                    </Link>
-
-                    <Link to="/admin/tables">
-                        Tables
-                    </Link>
-
-                    <Link to="/admin/bookings">
-                        Bookings
-                    </Link>
-
-                    <button
-                        className="logout-button"
-                        onClick={handleLogout}
-                    >
+                    <Link to="/admin">Dashboard</Link>
+                    <Link to="/admin/tables">Tables</Link>
+                    <Link to="/admin/bookings">Bookings</Link>
+                    <button className="logout-button" onClick={handleLogout}>
                         Logout
                     </button>
-
                 </nav>
-
             </header>
 
-
             <main className="admin-page">
-
                 <div className="admin-container">
-
                     <p className="home-tagline">
                         RESTAURANT MANAGEMENT
                     </p>
 
-                    <h1>
-                        Admin Dashboard
-                    </h1>
+                    <h1>Admin Dashboard</h1>
 
                     <p className="admin-subtitle">
                         Welcome, {user?.name || "Admin"}.
                         Manage your restaurant from here.
                     </p>
 
-
                     <div className="admin-cards">
-
-                        <Link
-                            to="/admin/tables"
-                            className="admin-card"
-                        >
-                            <div className="admin-card-icon">
-                                🪑
-                            </div>
-
-                            <h2>
-                                Table Management
-                            </h2>
-
-                            <p>
-                                Add, edit, delete and manage
-                                restaurant tables.
-                            </p>
+                        <Link to="/admin/tables" className="admin-card">
+                            <div className="admin-card-icon">🪑</div>
+                            <h2>Table Management</h2>
+                            <p>Add, edit, delete and manage restaurant tables.</p>
                         </Link>
 
-
-                        <Link
-                            to="/admin/bookings"
-                            className="admin-card"
-                        >
-                            <div className="admin-card-icon">
-                                📅
-                            </div>
-
-                            <h2>
-                                Booking Management
-                            </h2>
-
-                            <p>
-                                View and manage customer
-                                reservations.
-                            </p>
+                        <Link to="/admin/bookings" className="admin-card">
+                            <div className="admin-card-icon">📅</div>
+                            <h2>Booking Management</h2>
+                            <p>View and manage customer reservations.</p>
                         </Link>
 
-                        <Link
-                            to="/admin/settings"
-                            className="admin-card"
-                        >
+                        <Link to="/admin/settings" className="admin-card">
                             <div className="admin-card-icon">⚙️</div>
                             <h2>Reservation Settings</h2>
                             <p>Configure booking duration, buffer time and weekly opening hours.</p>
@@ -121,12 +69,14 @@ function AdminDashboard() {
                             <p>Close the restaurant or set different hours for holidays and events.</p>
                         </Link>
 
+                        <Link to="/admin/analytics" className="admin-card">
+                            <div className="admin-card-icon">📊</div>
+                            <h2>Analytics & Reports</h2>
+                            <p>View reservation statistics and recent booking trends.</p>
+                        </Link>
                     </div>
-
                 </div>
-
             </main>
-
         </div>
     );
 }
