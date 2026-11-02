@@ -9,6 +9,7 @@ const tableRoutes = require("./routes/tableRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const specialDayRoutes = require("./routes/specialDayRoutes");
+const startReminderScheduler = require("./utils/reminderScheduler");
 
 const app = express();
 
@@ -29,6 +30,8 @@ mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
         console.log("MongoDB connected");
+
+        startReminderScheduler();
 
         const port = process.env.PORT || 5000;
         app.listen(port, () => {
