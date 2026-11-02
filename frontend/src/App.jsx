@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminTables from "./pages/AdminTables";
 import AdminBookings from "./pages/AdminBookings";
 import AdminSettings from "./pages/AdminSettings";
+import AdminSpecialDays from "./pages/AdminSpecialDays";
 
 import AdminRoute from "./components/AdminRoute";
 
@@ -29,6 +30,7 @@ function App() {
                 <Route path="/admin/tables" element={<AdminRoute><AdminTables /></AdminRoute>} />
                 <Route path="/admin/bookings" element={<AdminRoute><AdminBookings /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+                <Route path="/admin/special-days" element={<AdminRoute><AdminSpecialDays /></AdminRoute>} />
             </Routes>
         </BrowserRouter>
     );
