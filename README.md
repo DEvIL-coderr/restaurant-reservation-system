@@ -20,6 +20,7 @@ A web-based application that allows customers to view table availability, make r
 - Create restaurant reservations
 - View personal booking history and booking fee details
 - See the current booking fee on the reservation calendar
+- Pay the booking fee securely through Razorpay after the reservation is confirmed
 - Receive the restaurant's cancellation message in My Bookings and by email
 - Modify or cancel reservations
 - Modified confirmed reservations return to pending status for administrator approval
@@ -35,6 +36,7 @@ A web-based application that allows customers to view table availability, make r
 - Delete cancelled reservations
 - Review booking modifications that require approval
 - Configure a fixed booking fee for new reservations
+- Review payment status for reservations
 - Add a customer-facing message when cancelling a reservation; the message appears in the customer's booking feed and is emailed
 - Analytics dashboard with reservation totals, status summaries, upcoming reservations, customer/table counts, and six-month/seven-day booking trends
 
@@ -215,13 +217,13 @@ Protected endpoints require a valid JWT bearer token. Administrative endpoints a
 
 The administrator can set the fixed booking fee (in INR per reservation) under **Admin Dashboard → Reservation Settings**. The fee is shown in the customer's reservation calendar and copied onto each new reservation, so changing the current fee does not change older bookings. When cancelling a booking, the admin can enter a customer message; it is shown on the customer's **My Bookings** page and included in the cancellation email.
 
-The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, analytics access, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
+The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, analytics access, booking fee configuration, Razorpay test payments, admin cancellation messages, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
 
 For analytics, sign in with an administrator account and open **Admin Dashboard → Analytics & Reports**. The page should show summary cards and reservation trends. The analytics API is protected and should reject non-admin accounts.
 
 ## Future Scope
 
-- Online payment integration
+- Automated payment reconciliation, refund handling and payment receipts
 - Enhanced accessibility and mobile responsiveness
 - Deployment to a cloud hosting platform
 
