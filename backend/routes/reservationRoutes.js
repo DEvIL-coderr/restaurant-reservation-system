@@ -13,6 +13,8 @@ const {
 const protect = require("../middleware/authMiddleware");
 const adminOnly = require("../middleware/adminMiddleware");
 
+const { createPaymentOrder, verifyPayment } = require("../controllers/paymentController");
+
 const router = express.Router();
 
 router.post("/", protect, createReservation);
@@ -20,6 +22,9 @@ router.post("/", protect, createReservation);
 router.get("/", protect, getMyReservations);
 
 router.get("/all", protect, adminOnly, getAllReservations);
+
+router.post("/:id/payment/order", protect, createPaymentOrder);
+router.post("/:id/payment/verify", protect, verifyPayment);
 
 router.put("/:id", protect, updateReservation);
 
