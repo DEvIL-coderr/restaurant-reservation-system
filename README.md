@@ -21,6 +21,7 @@ A web-based application that allows customers to view table availability, make r
 - View personal booking history and booking fee details
 - See the current booking fee on the reservation calendar
 - Pay the booking fee securely through Razorpay after the reservation is confirmed
+- Choose Pay at Restaurant when the selected table and time are allowed by the restaurant
 - Receive the restaurant's cancellation message in My Bookings and by email
 - Modify or cancel reservations
 - Modified confirmed reservations return to pending status for administrator approval
@@ -37,6 +38,8 @@ A web-based application that allows customers to view table availability, make r
 - Review booking modifications that require approval
 - Configure a fixed booking fee for new reservations
 - Review payment status for reservations
+- Configure which tables and time range offer Pay at Restaurant
+- Mark on-site payments as received after the customer pays
 - Add a customer-facing message when cancelling a reservation; the message appears in the customer's booking feed and is emailed
 - Analytics dashboard with reservation totals, status summaries, upcoming reservations, customer/table counts, and six-month/seven-day booking trends
 
@@ -215,7 +218,7 @@ Protected endpoints require a valid JWT bearer token. Administrative endpoints a
 
 ## Testing
 
-The administrator can set the fixed booking fee (in INR per reservation) under **Admin Dashboard → Reservation Settings**. The fee is shown in the customer's reservation calendar and copied onto each new reservation, so changing the current fee does not change older bookings. When cancelling a booking, the admin can enter a customer message; it is shown on the customer's **My Bookings** page and included in the cancellation email.
+The administrator can set the fixed booking fee (in INR per reservation) under **Admin Dashboard → Reservation Settings**. The same page lets the administrator enable **Pay at Restaurant**, select eligible tables, and choose a same-day start/end time window. Customers only see that option after choosing a matching table and reservation time. The selected method is stored with the reservation; customers see the instructions in My Bookings, and an admin can mark the on-site payment as received from Booking Management. This records payment of the booking fee (if configured); the final food bill is still settled at the restaurant. The fee is shown in the customer's reservation calendar and copied onto each new reservation, so changing the current fee does not change older bookings. When cancelling a booking, the admin can enter a customer message; it is shown on the customer's **My Bookings** page and included in the cancellation email.
 
 The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, analytics access, booking fee configuration, Razorpay test payments, admin cancellation messages, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
 
