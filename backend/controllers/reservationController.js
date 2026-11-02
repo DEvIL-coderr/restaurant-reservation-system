@@ -23,7 +23,7 @@ const escapeHtml = (value = "") =>
 
 const createReservation = async (req, res) => {
     try {
-        const { table, date, guests } = req.body;
+        const { table, date, guests, pricingMode = "per_person" } = req.body;
         const guestCount = Number(guests);
         const bookingDate = new Date(date);
 
@@ -111,6 +111,15 @@ const createReservation = async (req, res) => {
             });
         }
 
+        if (!["per_person", "full_table"].includes(pricingMode)) {
+            return res.status(400).json({ message: "Please choose a valid table pricing option." });
+        }
+
+        const tablePrice = pricingMode === "full_table"
+            ? Number(selectedTable.fullTablePrice || 0)
+            : Number(selectedTable.perPersonPrice || 0) * guestCount;
+        const totalBookingAmount = Math.round((tablePrice + Number(settings.bookingFee || 0)) * 100) / 100;
+
         const paymentMethod = req.body.paymentMethod === "pay_at_restaurant" ? "pay_at_restaurant" : "online";
         const reservationTime = bookingDate.toTimeString().slice(0, 5);
         const payAtRestaurantAllowed =
@@ -132,9 +141,11 @@ const createReservation = async (req, res) => {
             guests: guestCount,
             durationMinutes,
             bufferMinutes,
-            bookingFee: Number(settings.bookingFee || 0),
+            pricingMode,
+            tablePrice,
+            bookingFee: totalBookingAmount,
             paymentMethod,
-            paymentStatus: paymentMethod === "pay_at_restaurant" || Number(settings.bookingFee || 0) > 0 ? "pending" : "not_required"
+            paymentStatus: paymentMethod === "pay_at_restaurant" || totalBookingAmount > 0 ? "pending" : "not_required"
         });
 
         try {
