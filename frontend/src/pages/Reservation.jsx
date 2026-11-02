@@ -35,6 +35,7 @@ function Reservation() {
     const [selectedTable, setSelectedTable] = useState("");
     const [settings, setSettings] = useState(null);
     const [weeklyHours, setWeeklyHours] = useState([]);
+    const [specialDays, setSpecialDays] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
     const [message, setMessage] = useState("");
@@ -55,6 +56,11 @@ function Reservation() {
                 }
             })
             .catch((error) => console.error("Unable to load restaurant hours:", error));
+
+        fetch(`${API}/special-days`)
+            .then((response) => response.json())
+            .then((data) => setSpecialDays(data.specialDays || []))
+            .catch((error) => console.error("Unable to load special dates:", error));
     }, [token, navigate]);
 
     const calendarDays = useMemo(() => {
@@ -73,8 +79,15 @@ function Reservation() {
         [weeklyHours]
     );
 
+    const getCalendarDateKey = (day) => `${calendarMonth.getFullYear()}-${String(calendarMonth.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    const getSpecialDay = (day) => specialDays.find((item) => item.date === getCalendarDateKey(day));
+
     const isClosedDate = (day) => {
-        if (!day || !weeklyHours.length) return false;
+        if (!day) return false;
+        const specialDay = getSpecialDay(day);
+        if (specialDay) return specialDay.isClosed;
+        if (!weeklyHours.length) return false;
         const value = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day);
         return closedDays.has(value.toLocaleDateString("en-US", { weekday: "long" }));
     };
@@ -253,7 +266,7 @@ function Reservation() {
                             </div>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", marginTop: "17px", fontSize: "12px", color: "#76695f" }}>
                                 <span>● Selectable date</span>
-                                <span style={{ color: "#c3bbb4" }}>● Past / closed</span>
+                                <span style={{ color: "#c3bbb4" }}>● Past / closed / holiday</span>
                                 <span style={{ color: "#76513a" }}>● Selected</span>
                             </div>
                             <p style={{ marginTop: "16px", fontWeight: 600 }}>
