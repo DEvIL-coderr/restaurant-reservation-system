@@ -118,7 +118,8 @@ const createReservation = async (req, res) => {
             guests: guestCount,
             durationMinutes,
             bufferMinutes,
-            bookingFee: Number(settings.bookingFee || 0)
+            bookingFee: Number(settings.bookingFee || 0),
+            paymentStatus: Number(settings.bookingFee || 0) > 0 ? "pending" : "not_required"
         });
 
         try {
