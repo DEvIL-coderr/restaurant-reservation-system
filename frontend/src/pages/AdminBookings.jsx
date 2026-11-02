@@ -9,6 +9,7 @@ function AdminBookings() {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
+    const [cancellationReasons, setCancellationReasons] = useState({});
 
     useEffect(() => {
         fetchBookings();
@@ -46,7 +47,7 @@ function AdminBookings() {
         }
     };
 
-    const updateBookingStatus = async (id, status) => {
+    const updateBookingStatus = async (id, status, reason = "") => {
         try {
             const response = await fetch(
                 `http://localhost:5000/api/reservations/admin/${id}`,
@@ -57,7 +58,8 @@ function AdminBookings() {
                         Authorization: `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        status
+                        status,
+                        cancellationMessage: reason
                     })
                 }
             );
@@ -414,18 +416,21 @@ function AdminBookings() {
 
                                                 )}
 
-                                                <button
-                                                    type="button"
-                                                    className="cancel-button"
-                                                    onClick={() =>
-                                                        updateBookingStatus(
-                                                            booking._id,
-                                                            "cancelled"
-                                                        )
-                                                    }
-                                                >
-                                                    Cancel Booking
-                                                </button>
+                                                <div style={{ display: "grid", gap: "8px", width: "100%", maxWidth: "520px" }}>
+                                                    <label htmlFor={`cancel-reason-${booking._id}`} style={{ fontWeight: 600, color: "#49372b" }}>Message to customer (shown in My Bookings and sent by email)</label>
+                                                    <textarea
+                                                        id={`cancel-reason-${booking._id}`}
+                                                        rows="2"
+                                                        maxLength="1000"
+                                                        placeholder="Explain why this reservation is being cancelled..."
+                                                        value={cancellationReasons[booking._id] || ""}
+                                                        onChange={(event) => setCancellationReasons((current) => ({ ...current, [booking._id]: event.target.value }))}
+                                                        style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "8px", font: "inherit", boxSizing: "border-box" }}
+                                                    />
+                                                    <button type="button" className="cancel-button" onClick={() => updateBookingStatus(booking._id, "cancelled", cancellationReasons[booking._id] || "")}>
+                                                        Cancel Booking & Notify Customer
+                                                    </button>
+                                                </div>
 
                                             </div>
 
