@@ -21,6 +21,11 @@ function AdminSettings() {
     const [buffer, setBuffer] = useState(15);
     const [interval, setInterval] = useState(30);
     const [bookingFee, setBookingFee] = useState(0);
+    const [tables, setTables] = useState([]);
+    const [payAtRestaurantEnabled, setPayAtRestaurantEnabled] = useState(false);
+    const [payAtRestaurantTables, setPayAtRestaurantTables] = useState([]);
+    const [payAtRestaurantStartTime, setPayAtRestaurantStartTime] = useState("00:00");
+    const [payAtRestaurantEndTime, setPayAtRestaurantEndTime] = useState("23:59");
     const [hours, setHours] = useState(DEFAULT_HOURS);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -35,7 +40,14 @@ function AdminSettings() {
 
         const loadSettings = async () => {
             try {
-                const response = await fetch("http://localhost:5000/api/settings");
+                const [response, tablesResponse] = await Promise.all([
+                    fetch("http://localhost:5000/api/settings"),
+                    fetch("http://localhost:5000/api/tables", {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                ]);
+                const tablesData = await tablesResponse.json();
+                if (tablesResponse.ok) setTables(Array.isArray(tablesData) ? tablesData : []);
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || "Could not load settings");
 
@@ -44,6 +56,10 @@ function AdminSettings() {
                     setBuffer(data.settings.bufferMinutes ?? 15);
                     setInterval(data.settings.slotIntervalMinutes ?? 30);
                     setBookingFee(data.settings.bookingFee ?? 0);
+                    setPayAtRestaurantEnabled(data.settings.payAtRestaurantEnabled ?? false);
+                    setPayAtRestaurantTables((data.settings.payAtRestaurantTables || []).map((item) => String(item._id || item)));
+                    setPayAtRestaurantStartTime(data.settings.payAtRestaurantStartTime || "00:00");
+                    setPayAtRestaurantEndTime(data.settings.payAtRestaurantEndTime || "23:59");
                     if (data.settings.weeklyHours?.length === 7) {
                         const byDay = new Map(data.settings.weeklyHours.map((item) => [item.day, item]));
                         setHours(DAYS.map((day) => byDay.get(day) || DEFAULT_HOURS.find((item) => item.day === day)));
@@ -82,6 +98,10 @@ function AdminSettings() {
                     bufferMinutes: Number(buffer),
                     slotIntervalMinutes: Number(interval),
                     bookingFee: Number(bookingFee),
+                    payAtRestaurantEnabled,
+                    payAtRestaurantTables,
+                    payAtRestaurantStartTime,
+                    payAtRestaurantEndTime,
                     weeklyHours: hours
                 })
             });
@@ -154,6 +174,43 @@ function AdminSettings() {
                                     <label style={styles.label} htmlFor="bookingFee">Booking fee (₹ per reservation)</label>
                                     <input id="bookingFee" style={styles.input} type="number" min="0" max="100000" step="1" value={bookingFee} onChange={(e) => setBookingFee(e.target.value)} required />
                                 </div>
+                            </section>
+
+                            <section style={{ background: "#fff", padding: "24px", borderRadius: "14px", boxShadow: "0 4px 18px rgba(0,0,0,.05)" }}>
+                                <h2>Pay at restaurant availability</h2>
+                                <p style={{ color: "#76695f" }}>Customers will see this payment choice only when their selected table and reservation time match the rules below. Payment is recorded by an admin after the customer pays at the restaurant.</p>
+                                <label style={{ display: "flex", alignItems: "center", gap: "10px", margin: "16px 0" }}>
+                                    <input type="checkbox" checked={payAtRestaurantEnabled} onChange={(event) => setPayAtRestaurantEnabled(event.target.checked)} />
+                                    <strong>Enable Pay at Restaurant</strong>
+                                </label>
+                                {payAtRestaurantEnabled && (
+                                    <div style={{ display: "grid", gap: "16px" }}>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px", maxWidth: "520px" }}>
+                                            <div style={styles.field}>
+                                                <label style={styles.label} htmlFor="onsiteStart">Available from</label>
+                                                <input id="onsiteStart" style={styles.input} type="time" value={payAtRestaurantStartTime} onChange={(event) => setPayAtRestaurantStartTime(event.target.value)} />
+                                            </div>
+                                            <div style={styles.field}>
+                                                <label style={styles.label} htmlFor="onsiteEnd">Available until</label>
+                                                <input id="onsiteEnd" style={styles.input} type="time" value={payAtRestaurantEndTime} onChange={(event) => setPayAtRestaurantEndTime(event.target.value)} />
+                                            </div>
+                                        </div>
+                                        <strong>Choose eligible tables</strong>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px" }}>
+                                            {tables.map((table) => (
+                                                <label key={table._id} style={{ display: "flex", gap: "8px", alignItems: "center", padding: "10px", background: "#faf8f5", borderRadius: "8px" }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={payAtRestaurantTables.includes(String(table._id))}
+                                                        onChange={(event) => setPayAtRestaurantTables((current) => event.target.checked ? [...current, String(table._id)] : current.filter((id) => id !== String(table._id)))}
+                                                    />
+                                                    Table {table.tableNumber} ({table.category})
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {tables.length === 0 && <p>No tables found. Add tables before configuring this option.</p>}
+                                    </div>
+                                )}
                             </section>
 
                             <section style={{ background: "#fff", padding: "24px", borderRadius: "14px", boxShadow: "0 4px 18px rgba(0,0,0,.05)" }}>
