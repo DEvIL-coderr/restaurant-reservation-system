@@ -117,7 +117,8 @@ const createReservation = async (req, res) => {
             date: bookingDate,
             guests: guestCount,
             durationMinutes,
-            bufferMinutes
+            bufferMinutes,
+            bookingFee: Number(settings.bookingFee || 0)
         });
 
         try {
@@ -340,7 +341,7 @@ const getAllReservations = async (req, res) => {
 const adminUpdateReservation = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, guests } = req.body;
+        const { status, guests, cancellationMessage } = req.body;
 
         const reservation = await Reservation.findById(id);
 
@@ -364,6 +365,10 @@ const adminUpdateReservation = async (req, res) => {
             }
 
             reservation.status = status;
+            if (status === "cancelled") {
+                reservation.cancellationMessage = String(cancellationMessage || "").trim() ||
+                    "Your reservation was cancelled by the restaurant.";
+            }
         }
 
         if (guests !== undefined) {
@@ -424,10 +429,10 @@ const adminUpdateReservation = async (req, res) => {
                         : "Your restaurant reservation was cancelled",
                     text: isConfirmed
                         ? `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} is confirmed.`
-                        : `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} has been cancelled by the restaurant.`,
+                        : `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} has been cancelled by the restaurant. Message: ${updatedReservation.cancellationMessage || "Your reservation was cancelled by the restaurant."}`,
                     html: isConfirmed
                         ? `<h2>Reservation confirmed</h2><p>Hello ${customerName},</p><p>Your reservation is confirmed. We look forward to seeing you!</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${updatedReservation.guests}<br><strong>Table:</strong> ${tableName}</p>`
-                        : `<h2>Reservation cancelled</h2><p>Hello ${customerName},</p><p>Your reservation has been cancelled by the restaurant.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Table:</strong> ${tableName}</p>`
+                        : `<h2>Reservation cancelled</h2><p>Hello ${customerName},</p><p>Your reservation has been cancelled by the restaurant.</p><p><strong>Message from the restaurant:</strong> ${escapeHtml(updatedReservation.cancellationMessage || "Your reservation was cancelled by the restaurant.")}</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Table:</strong> ${tableName}</p>`
                 });
             }
     
