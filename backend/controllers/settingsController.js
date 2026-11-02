@@ -28,12 +28,14 @@ const updateRestaurantSettings = async (req, res) => {
             reservationDurationMinutes,
             bufferMinutes,
             slotIntervalMinutes,
+            bookingFee,
             weeklyHours
         } = req.body;
 
         const duration = Number(reservationDurationMinutes);
         const buffer = Number(bufferMinutes);
         const interval = Number(slotIntervalMinutes);
+        const fee = Number(bookingFee);
 
         if (!Number.isInteger(duration) || duration < 30 || duration > 360) {
             return res.status(400).json({
@@ -50,6 +52,12 @@ const updateRestaurantSettings = async (req, res) => {
         if (!Number.isInteger(interval) || interval < 15 || interval > 120) {
             return res.status(400).json({
                 message: "Slot interval must be between 15 and 120 minutes"
+            });
+        }
+
+        if (!Number.isFinite(fee) || fee < 0 || fee > 100000) {
+            return res.status(400).json({
+                message: "Booking fee must be between ₹0 and ₹100,000"
             });
         }
 
@@ -98,6 +106,7 @@ const updateRestaurantSettings = async (req, res) => {
                     reservationDurationMinutes: duration,
                     bufferMinutes: buffer,
                     slotIntervalMinutes: interval,
+                    bookingFee: fee,
                     weeklyHours: weeklyHours.map((item) => ({
                         day: item.day,
                         isOpen: item.isOpen,
