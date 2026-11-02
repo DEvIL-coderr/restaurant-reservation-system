@@ -86,6 +86,21 @@ function AdminBookings() {
         }
     };
 
+    const markOnSitePaymentReceived = async (id) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/reservations/admin/${id}/onsite-payment`, {
+                method: "PUT",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || "Could not update payment status");
+            setMessage("Pay-at-restaurant payment marked as received.");
+            fetchBookings();
+        } catch (error) {
+            setMessage(error.message || "Server connection failed");
+        }
+    };
+
     const deleteCancelledBooking = async (id) => {
         const confirmDelete = window.confirm(
             "Delete this cancelled booking permanently?"
@@ -343,6 +358,13 @@ function AdminBookings() {
                                                     </strong>{" "}
                                                     {booking.guests}
                                                 </p>
+                                                <p><strong>Payment:</strong> {booking.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online"}</p>
+                                                <p><strong>Payment status:</strong> {booking.paymentStatus || "not_required"}</p>
+                                                {booking.paymentMethod === "pay_at_restaurant" && booking.paymentStatus !== "paid" && booking.status === "confirmed" && (
+                                                    <button type="button" className="save-button" onClick={() => markOnSitePaymentReceived(booking._id)}>
+                                                        Mark restaurant payment received
+                                                    </button>
+                                                )}
 
                                             </div>
 
