@@ -21,6 +21,7 @@ A web-based application that allows customers to view table availability, make r
 - View personal booking history
 - Modify or cancel reservations
 - Modified confirmed reservations return to pending status for administrator approval
+- Email notifications for new bookings, customer cancellations, and admin booking confirmations/cancellations
 
 ### Administrator Features
 - Administrator login and role-based access
@@ -113,9 +114,20 @@ Create a `.env` file inside the `backend` folder. Add your own configuration val
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_secure_random_secret
+
+# Email notifications (example: Gmail SMTP)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_16_character_gmail_app_password
+EMAIL_FROM=Restaurant Reservations <your_email@gmail.com>
+ADMIN_EMAIL=admin_email@example.com
 ```
 
 Do not commit the actual `.env` file or share your secrets publicly.
+
+Email notifications use Nodemailer and SMTP. For Gmail, enable 2-Step Verification on your Google account and create a Google **App Password**. Use that 16-character App Password as `SMTP_PASS` (not your normal Gmail password). Set `ADMIN_EMAIL` to the address that should receive new-booking alerts. If SMTP settings are missing or the mail provider is unavailable, reservations will still be saved; the backend logs the email issue.
 
 ### 3. Start the backend
 
