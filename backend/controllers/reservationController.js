@@ -2,6 +2,7 @@ const Table = require("../models/Table");
 const Reservation = require("../models/Reservation");
 
 const RestaurantSettings = require("../models/RestaurantSettings");
+const SpecialDay = require("../models/SpecialDay");
 
 const createReservation = async (req, res) => {
     try {
@@ -36,13 +37,19 @@ const createReservation = async (req, res) => {
             new RestaurantSettings({ key: "main" });
 
         const weekday = bookingDate.toLocaleDateString("en-US", { weekday: "long" });
-        const hours = settings.weeklyHours.find((item) => item.day === weekday);
+        const weeklyHours = settings.weeklyHours.find((item) => item.day === weekday);
+        const dateKey = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, "0")}-${String(bookingDate.getDate()).padStart(2, "0")}`;
+        const specialDay = await SpecialDay.findOne({ date: dateKey });
 
-        if (!hours || !hours.isOpen) {
-            return res.status(400).json({ message: "The restaurant is closed on this day" });
+        if (specialDay?.isClosed || (!specialDay && (!weeklyHours || !weeklyHours.isOpen))) {
+            return res.status(400).json({
+                message: specialDay?.note || "The restaurant is closed on this day"
+            });
         }
 
-        const time = `${String(bookingDate.getHours()).padStart(2, "0")}:${String(bookingDate.getMinutes()).padStart(2, "0")}`;
+        const hours = specialDay
+            ? { openTime: specialDay.openTime, closeTime: specialDay.closeTime }
+            : weeklyHours;
         const [openHour, openMinute] = hours.openTime.split(":").map(Number);
         const [closeHour, closeMinute] = hours.closeTime.split(":").map(Number);
         const bookingMinutes = bookingDate.getHours() * 60 + bookingDate.getMinutes();
