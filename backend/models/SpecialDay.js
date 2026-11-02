@@ -5,7 +5,7 @@ const specialDaySchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        match: /^\\d{4}-\\d{2}-\\d{2}$/
+        match: /^\d{4}-\d{2}-\d{2}$/
     },
     isClosed: {
         type: Boolean,
