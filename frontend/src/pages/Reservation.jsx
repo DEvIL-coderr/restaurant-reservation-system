@@ -264,6 +264,10 @@ function Reservation() {
                                     );
                                 })}
                             </div>
+                            <div style={{ marginTop: "14px", padding: "12px", borderRadius: "9px", background: "#fff8f0", color: "#76513a" }}>
+                                <strong>Booking fee: ₹{Number(settings?.bookingFee || 0).toLocaleString("en-IN")}</strong>
+                                <div style={{ fontSize: "12px", marginTop: "3px" }}>Fixed fee per reservation, set by the restaurant.</div>
+                            </div>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", marginTop: "17px", fontSize: "12px", color: "#76695f" }}>
                                 <span>● Selectable date</span>
                                 <span style={{ color: "#c3bbb4" }}>● Past / closed / holiday</span>
@@ -292,6 +296,7 @@ function Reservation() {
                                     <strong>Reservation details</strong>
                                     <p style={{ margin: "7px 0 0" }}>Duration: {settings.reservationDurationMinutes} minutes</p>
                                     <p style={{ margin: "4px 0 0" }}>Preparation buffer: {settings.bufferMinutes} minutes</p>
+                                    <p style={{ margin: "4px 0 0", fontWeight: 700 }}>Booking fee: ₹{Number(settings.bookingFee || 0).toLocaleString("en-IN")}</p>
                                 </div>
                             )}
 
