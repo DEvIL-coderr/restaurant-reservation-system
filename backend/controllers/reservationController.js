@@ -293,6 +293,18 @@ const updateReservation = async (req, res) => {
 
         const settings = await RestaurantSettings.findOne({ key: "main" }) ||
             new RestaurantSettings({ key: "main" });
+
+        if (reservation.paymentMethod === "pay_at_restaurant") {
+            const reservationTime = updatedDate.toTimeString().slice(0, 5);
+            const allowedOnSitePayment = settings.payAtRestaurantEnabled === true &&
+                (settings.payAtRestaurantTables || []).some((tableId) => tableId.toString() === selectedTable._id.toString()) &&
+                reservationTime >= (settings.payAtRestaurantStartTime || "00:00") &&
+                reservationTime <= (settings.payAtRestaurantEndTime || "23:59");
+            if (!allowedOnSitePayment) {
+                return res.status(400).json({ message: "Pay at restaurant is not available for the selected table or time. Please contact the restaurant or create a new booking." });
+            }
+        }
+
         const weekday = updatedDate.toLocaleDateString("en-US", { weekday: "long" });
         const weeklyHours = settings.weeklyHours.find((item) => item.day === weekday);
         const dateKey = `${updatedDate.getFullYear()}-${String(updatedDate.getMonth() + 1).padStart(2, "0")}-${String(updatedDate.getDate()).padStart(2, "0")}`;
