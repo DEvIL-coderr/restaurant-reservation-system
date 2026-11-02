@@ -407,6 +407,13 @@ function MyReservations() {
                                     ).toLocaleString()}
                                 </p>
 
+                                {reservation.bookingFee !== undefined && (
+                                    <p>
+                                        <strong>Booking fee:</strong>{" "}
+                                        ₹{Number(reservation.bookingFee || 0).toLocaleString("en-IN")}
+                                    </p>
+                                )}
+
                                 <p>
                                     <strong>
                                         Status:
@@ -419,6 +426,13 @@ function MyReservations() {
                                     </span>
                                 </p>
 
+
+                                {reservation.status === "cancelled" && reservation.cancellationMessage && (
+                                    <div role="status" style={{ marginTop: "16px", padding: "16px", borderRadius: "10px", background: "#fff1ed", borderLeft: "4px solid #b23b3b" }}>
+                                        <strong style={{ color: "#8f2929" }}>Message from the restaurant</strong>
+                                        <p style={{ margin: "8px 0 0", color: "#65443b" }}>{reservation.cancellationMessage}</p>
+                                    </div>
+                                )}
 
                                 {/* =========================
                                     ACTION BUTTONS
