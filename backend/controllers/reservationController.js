@@ -111,6 +111,20 @@ const createReservation = async (req, res) => {
             });
         }
 
+        const paymentMethod = req.body.paymentMethod === "pay_at_restaurant" ? "pay_at_restaurant" : "online";
+        const reservationTime = bookingDate.toTimeString().slice(0, 5);
+        const payAtRestaurantAllowed =
+            settings.payAtRestaurantEnabled === true &&
+            (settings.payAtRestaurantTables || []).some((tableId) => tableId.toString() === selectedTable._id.toString()) &&
+            reservationTime >= (settings.payAtRestaurantStartTime || "00:00") &&
+            reservationTime <= (settings.payAtRestaurantEndTime || "23:59");
+
+        if (paymentMethod === "pay_at_restaurant" && !payAtRestaurantAllowed) {
+            return res.status(400).json({
+                message: "Pay at restaurant is not available for this table or reservation time."
+            });
+        }
+
         const reservation = await Reservation.create({
             user: req.userId,
             table,
@@ -119,6 +133,7 @@ const createReservation = async (req, res) => {
             durationMinutes,
             bufferMinutes,
             bookingFee: Number(settings.bookingFee || 0),
+            paymentMethod,
             paymentStatus: Number(settings.bookingFee || 0) > 0 ? "pending" : "not_required"
         });
 
