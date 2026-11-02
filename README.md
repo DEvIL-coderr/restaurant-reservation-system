@@ -32,6 +32,7 @@ A web-based application that allows customers to view table availability, make r
 - Confirm or cancel reservations
 - Delete cancelled reservations
 - Review booking modifications that require approval
+- Analytics dashboard with reservation totals, status summaries, upcoming reservations, customer/table counts, and six-month/seven-day booking trends
 
 ## Technologies Used
 
@@ -173,7 +174,7 @@ Ensure the frontend API requests point to the running backend.
 
 ## API Overview
 
-The backend provides REST APIs for user authentication, table management, and reservation management.
+The backend provides REST APIs for user authentication, table management, reservation management, and administrator analytics.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -193,18 +194,19 @@ The backend provides REST APIs for user authentication, table management, and re
 | GET | `/api/reservations/all` | View all reservations (admin) |
 | PUT | `/api/reservations/admin/:id` | Update a reservation (admin) |
 | DELETE | `/api/reservations/admin/:id` | Delete a cancelled reservation (admin) |
+| GET | `/api/analytics/admin` | Retrieve admin analytics and reservation trends |
 
 Protected endpoints require a valid JWT bearer token. Administrative endpoints additionally require administrator privileges.
 
 ## Testing
 
-The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
+The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, analytics access, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
+
+For analytics, sign in with an administrator account and open **Admin Dashboard → Analytics & Reports**. The page should show summary cards and reservation trends. The analytics API is protected and should reject non-admin accounts.
 
 ## Future Scope
 
 - Online payment integration
-- Reservation analytics and reporting
-- Improved availability checks for overlapping reservation times
 - Enhanced accessibility and mobile responsiveness
 - Deployment to a cloud hosting platform
 
