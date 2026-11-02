@@ -134,7 +134,7 @@ const createReservation = async (req, res) => {
             bufferMinutes,
             bookingFee: Number(settings.bookingFee || 0),
             paymentMethod,
-            paymentStatus: Number(settings.bookingFee || 0) > 0 ? "pending" : "not_required"
+            paymentStatus: paymentMethod === "pay_at_restaurant" || Number(settings.bookingFee || 0) > 0 ? "pending" : "not_required"
         });
 
         try {
