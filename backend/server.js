@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const tableRoutes = require("./routes/tableRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const specialDayRoutes = require("./routes/specialDayRoutes");
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/tables", tableRoutes);
 app.use("/api/reservations", reservationRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/special-days", specialDayRoutes);
 
 app.get("/", (req, res) => {
     res.send("Restaurant Reservation API is running");
