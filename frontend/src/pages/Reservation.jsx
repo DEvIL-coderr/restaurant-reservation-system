@@ -34,6 +34,7 @@ function Reservation() {
     const [selectedTime, setSelectedTime] = useState("");
     const [selectedTable, setSelectedTable] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("online");
+    const [pricingMode, setPricingMode] = useState("per_person");
     const [settings, setSettings] = useState(null);
     const [weeklyHours, setWeeklyHours] = useState([]);
     const [specialDays, setSpecialDays] = useState([]);
@@ -154,9 +155,14 @@ function Reservation() {
         setSelectedTime(slot.time);
         setSelectedTable("");
         setPaymentMethod("online");
+        setPricingMode("per_person");
     };
 
     const availableTables = slots.find((slot) => slot.time === selectedTime)?.tables || [];
+    const selectedTableDetails = availableTables.find((table) => String(table._id) === String(selectedTable));
+    const selectedTablePrice = selectedTableDetails ? (pricingMode === "full_table" ? Number(selectedTableDetails.fullTablePrice || 0) : Number(selectedTableDetails.perPersonPrice || 0) * Number(guests || 0)) : 0;
+    const totalBookingAmount = Math.round((selectedTablePrice + Number(settings?.bookingFee || 0)) * 100) / 100;
+
     const payAtRestaurantAvailable = Boolean(
         settings?.payAtRestaurantEnabled && selectedTable &&
         (settings.payAtRestaurantTables || []).some((tableId) => String(tableId._id || tableId) === String(selectedTable)) &&
@@ -183,7 +189,8 @@ function Reservation() {
                     table: selectedTable,
                     date: `${date}T${selectedTime}`,
                     guests: Number(guests),
-                    paymentMethod
+                    paymentMethod,
+                    pricingMode
                 })
             });
             const data = await response.json();
@@ -361,12 +368,14 @@ function Reservation() {
                                             type="button"
                                             key={table._id}
                                             className={`table-option ${selectedTable === table._id ? "selected" : ""}`}
-                                            onClick={() => { setSelectedTable(table._id); setPaymentMethod("online"); }}
+                                            onClick={() => { setSelectedTable(table._id); setPaymentMethod("online"); setPricingMode("per_person"); }}
                                             style={{ textAlign: "left", cursor: "pointer" }}
                                         >
                                             <h3>Table {table.tableNumber}</h3>
                                             <p>Capacity: {table.capacity} guests</p>
                                             <p>Category: {table.category}</p>
+                                            <p>Per person: ₹{Number(table.perPersonPrice || 0).toLocaleString("en-IN")}</p>
+                                            <p>Full table: ₹{Number(table.fullTablePrice || 0).toLocaleString("en-IN")}</p>
                                             <span className="table-status">Available</span>
                                         </button>
                                     ))}
@@ -375,6 +384,25 @@ function Reservation() {
                                 <p>No tables are available for this time.</p>
                             )}
 
+
+                            {selectedTable && (
+                                <div style={{ marginTop: "18px", padding: "16px", borderRadius: "10px", background: "#faf6f1", border: "1px solid #ead8c8" }}>
+                                    <strong>Choose your table pricing</strong>
+                                    <label style={{ display: "flex", gap: "9px", alignItems: "center", marginTop: "12px" }}>
+                                        <input type="radio" name="pricingMode" value="per_person" checked={pricingMode === "per_person"} onChange={() => setPricingMode("per_person")} />
+                                        Per person — ₹{Number(selectedTableDetails?.perPersonPrice || 0).toLocaleString("en-IN")} × {guests} guests = ₹{(Number(selectedTableDetails?.perPersonPrice || 0) * Number(guests || 0)).toLocaleString("en-IN")}
+                                    </label>
+                                    <label style={{ display: "flex", gap: "9px", alignItems: "center", marginTop: "10px" }}>
+                                        <input type="radio" name="pricingMode" value="full_table" checked={pricingMode === "full_table"} onChange={() => setPricingMode("full_table")} />
+                                        Full table — ₹{Number(selectedTableDetails?.fullTablePrice || 0).toLocaleString("en-IN")} for the entire table
+                                    </label>
+                                    <div style={{ marginTop: "13px", borderTop: "1px solid #e8d9cb", paddingTop: "12px" }}>
+                                        <div>Table price: ₹{selectedTablePrice.toLocaleString("en-IN")}</div>
+                                        {Number(settings?.bookingFee || 0) > 0 && <div>Additional reservation fee: ₹{Number(settings.bookingFee).toLocaleString("en-IN")}</div>}
+                                        <strong style={{ display: "block", marginTop: "6px" }}>Total due: ₹{totalBookingAmount.toLocaleString("en-IN")}</strong>
+                                    </div>
+                                </div>
+                            )}
                             {selectedTable && payAtRestaurantAvailable && (
                                 <div style={{ marginTop: "18px", padding: "16px", borderRadius: "10px", background: "#fff8f0", border: "1px solid #ead8c8" }}>
                                     <strong>Choose payment method</strong>
