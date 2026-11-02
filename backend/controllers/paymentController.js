@@ -26,6 +26,10 @@ const createPaymentOrder = async (req, res) => {
             });
         }
 
+        if (reservation.paymentMethod === "pay_at_restaurant") {
+            return res.status(400).json({ message: "This reservation is set to pay at the restaurant, not online." });
+        }
+
         if (reservation.paymentStatus === "paid") {
             return res.status(400).json({ message: "This reservation has already been paid." });
         }
