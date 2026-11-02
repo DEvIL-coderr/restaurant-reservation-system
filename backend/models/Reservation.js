@@ -38,6 +38,11 @@ const reservationSchema = new mongoose.Schema(
             type: String,
             enum: ["pending", "confirmed", "cancelled"],
             default: "pending"
+        },
+
+        reminderSent: {
+            type: Boolean,
+            default: false
         }
     },
     {
