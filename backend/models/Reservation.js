@@ -34,6 +34,18 @@ const reservationSchema = new mongoose.Schema(
             min: 0
         },
 
+        pricingMode: {
+            type: String,
+            enum: ["per_person", "full_table"],
+            default: "per_person"
+        },
+
+        tablePrice: {
+            type: Number,
+            min: 0,
+            default: 0
+        },
+
         bookingFee: {
             type: Number,
             min: 0,
