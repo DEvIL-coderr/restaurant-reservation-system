@@ -29,6 +29,10 @@ const updateRestaurantSettings = async (req, res) => {
             bufferMinutes,
             slotIntervalMinutes,
             bookingFee,
+            payAtRestaurantEnabled,
+            payAtRestaurantTables,
+            payAtRestaurantStartTime,
+            payAtRestaurantEndTime,
             weeklyHours
         } = req.body;
 
@@ -59,6 +63,20 @@ const updateRestaurantSettings = async (req, res) => {
             return res.status(400).json({
                 message: "Booking fee must be between ₹0 and ₹100,000"
             });
+        }
+
+        const validTime = (value) => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+        const selectedPayTables = Array.isArray(payAtRestaurantTables) ? payAtRestaurantTables : [];
+        if (typeof payAtRestaurantEnabled !== "boolean") {
+            return res.status(400).json({ message: "Choose whether pay at restaurant is enabled" });
+        }
+        if (!validTime(payAtRestaurantStartTime || "00:00") ||
+            !validTime(payAtRestaurantEndTime || "23:59") ||
+            (payAtRestaurantStartTime || "00:00") >= (payAtRestaurantEndTime || "23:59")) {
+            return res.status(400).json({ message: "Enter a valid pay-at-restaurant time range" });
+        }
+        if (payAtRestaurantEnabled && selectedPayTables.length === 0) {
+            return res.status(400).json({ message: "Select at least one table for pay at restaurant" });
         }
 
         if (!Array.isArray(weeklyHours) || weeklyHours.length !== 7) {
@@ -107,6 +125,10 @@ const updateRestaurantSettings = async (req, res) => {
                     bufferMinutes: buffer,
                     slotIntervalMinutes: interval,
                     bookingFee: fee,
+                    payAtRestaurantEnabled,
+                    payAtRestaurantTables: selectedPayTables,
+                    payAtRestaurantStartTime: payAtRestaurantStartTime || "00:00",
+                    payAtRestaurantEndTime: payAtRestaurantEndTime || "23:59",
                     weeklyHours: weeklyHours.map((item) => ({
                         day: item.day,
                         isOpen: item.isOpen,
