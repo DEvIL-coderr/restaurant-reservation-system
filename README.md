@@ -18,7 +18,9 @@ A web-based application that allows customers to view table availability, make r
 - Customer profile management
 - Search for available tables by date, time, guest count, and category
 - Create restaurant reservations
-- View personal booking history
+- View personal booking history and booking fee details
+- See the current booking fee on the reservation calendar
+- Receive the restaurant's cancellation message in My Bookings and by email
 - Modify or cancel reservations
 - Modified confirmed reservations return to pending status for administrator approval
 - Email notifications for new bookings, customer cancellations, and admin booking confirmations/cancellations
@@ -32,6 +34,8 @@ A web-based application that allows customers to view table availability, make r
 - Confirm or cancel reservations
 - Delete cancelled reservations
 - Review booking modifications that require approval
+- Configure a fixed booking fee for new reservations
+- Add a customer-facing message when cancelling a reservation; the message appears in the customer's booking feed and is emailed
 - Analytics dashboard with reservation totals, status summaries, upcoming reservations, customer/table counts, and six-month/seven-day booking trends
 
 ## Technologies Used
@@ -199,6 +203,8 @@ The backend provides REST APIs for user authentication, table management, reserv
 Protected endpoints require a valid JWT bearer token. Administrative endpoints additionally require administrator privileges.
 
 ## Testing
+
+The administrator can set the fixed booking fee (in INR per reservation) under **Admin Dashboard → Reservation Settings**. The fee is shown in the customer's reservation calendar and copied onto each new reservation, so changing the current fee does not change older bookings. When cancelling a booking, the admin can enter a customer message; it is shown on the customer's **My Bookings** page and included in the cancellation email.
 
 The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, analytics access, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
 
