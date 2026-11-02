@@ -54,6 +54,22 @@ const restaurantSettingsSchema = new mongoose.Schema(
             min: 0,
             max: 100000
         },
+        payAtRestaurantEnabled: {
+            type: Boolean,
+            default: false
+        },
+        payAtRestaurantTables: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Table"
+        }],
+        payAtRestaurantStartTime: {
+            type: String,
+            default: "00:00"
+        },
+        payAtRestaurantEndTime: {
+            type: String,
+            default: "23:59"
+        },
         weeklyHours: {
             type: [weeklyHourSchema],
             default: [
