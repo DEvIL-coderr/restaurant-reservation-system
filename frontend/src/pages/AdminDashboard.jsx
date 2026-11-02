@@ -106,6 +106,15 @@ function AdminDashboard() {
                             </p>
                         </Link>
 
+                        <Link
+                            to="/admin/settings"
+                            className="admin-card"
+                        >
+                            <div className="admin-card-icon">⚙️</div>
+                            <h2>Reservation Settings</h2>
+                            <p>Configure booking duration, buffer time and weekly opening hours.</p>
+                        </Link>
+
                     </div>
 
                 </div>
