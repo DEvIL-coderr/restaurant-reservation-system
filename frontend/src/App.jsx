@@ -12,6 +12,7 @@ import AdminTables from "./pages/AdminTables";
 import AdminBookings from "./pages/AdminBookings";
 import AdminSettings from "./pages/AdminSettings";
 import AdminSpecialDays from "./pages/AdminSpecialDays";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 import AdminRoute from "./components/AdminRoute";
 
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/admin/bookings" element={<AdminRoute><AdminBookings /></AdminRoute>} />
                 <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
                 <Route path="/admin/special-days" element={<AdminRoute><AdminSpecialDays /></AdminRoute>} />
+                <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
             </Routes>
         </BrowserRouter>
     );
