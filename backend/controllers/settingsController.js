@@ -65,7 +65,7 @@ const updateRestaurantSettings = async (req, res) => {
             });
         }
 
-        const validTime = (value) => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+        const validTime = (value) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
         const selectedPayTables = Array.isArray(payAtRestaurantTables) ? payAtRestaurantTables : [];
         if (typeof payAtRestaurantEnabled !== "boolean") {
             return res.status(400).json({ message: "Choose whether pay at restaurant is enabled" });
