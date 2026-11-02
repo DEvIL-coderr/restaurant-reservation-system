@@ -515,6 +515,13 @@ function MyReservations() {
 
                                 {reservation.bookingFee > 0 && (
                                     <p>
+                                        <strong>Payment method:</strong>{" "}
+                                        {reservation.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online payment"}
+                                    </p>
+                                )}
+
+                                {reservation.bookingFee > 0 && (
+                                    <p>
                                         <strong>Payment status:</strong>{" "}
                                         <span className={reservation.paymentStatus === "paid" ? "status status-confirmed" : "status status-pending"}>
                                             {reservation.paymentStatus || "pending"}
@@ -543,6 +550,16 @@ function MyReservations() {
                                 )}
 
                                 {reservation.status === "confirmed" &&
+                                    reservation.paymentMethod === "pay_at_restaurant" &&
+                                    reservation.paymentStatus !== "paid" && (
+                                    <div style={{ marginTop: "16px", padding: "16px", background: "#f2f8f2", borderRadius: "10px", borderLeft: "4px solid #4d8a59" }}>
+                                        <strong>Pay at the restaurant</strong>
+                                        <p style={{ margin: "7px 0 0" }}>You selected to pay when you arrive. Please pay ₹{Number(reservation.bookingFee || 0).toLocaleString("en-IN")} at the restaurant counter. The team will update your payment status after receiving it.</p>
+                                    </div>
+                                )}
+
+                                {reservation.status === "confirmed" &&
+                                    reservation.paymentMethod !== "pay_at_restaurant" &&
                                     Number(reservation.bookingFee || 0) > 0 &&
                                     reservation.paymentStatus !== "paid" && (
                                     <div style={{ marginTop: "16px", padding: "16px", background: "#fff8f0", borderRadius: "10px" }}>
