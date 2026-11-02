@@ -1,5 +1,6 @@
 const Table = require("../models/Table");
 const Reservation = require("../models/Reservation");
+const SpecialDay = require("../models/SpecialDay");
 
 const addTable = async (req, res) => {
     try {
@@ -123,17 +124,21 @@ const getAvailableTables = async (req, res) => {
         }
 
         const weekday = dayDate.toLocaleDateString("en-US", { weekday: "long" });
-        const hours = settings.weeklyHours.find((item) => item.day === weekday);
+        const weeklyHours = settings.weeklyHours.find((item) => item.day === weekday);
+        const specialDay = await SpecialDay.findOne({ date });
 
-        if (!hours || !hours.isOpen) {
+        if (specialDay?.isClosed || (!specialDay && (!weeklyHours || !weeklyHours.isOpen))) {
             return res.json({
                 date,
                 closed: true,
-                message: "The restaurant is closed on this day",
+                message: specialDay?.note || "The restaurant is closed on this day",
                 slots: []
             });
         }
 
+        const hours = specialDay
+            ? { openTime: specialDay.openTime, closeTime: specialDay.closeTime }
+            : weeklyHours;
         const [openHour, openMinute] = hours.openTime.split(":").map(Number);
         const [closeHour, closeMinute] = hours.closeTime.split(":").map(Number);
         const openingMinutes = openHour * 60 + openMinute;
@@ -198,7 +203,9 @@ const getAvailableTables = async (req, res) => {
             settings: {
                 reservationDurationMinutes: duration,
                 bufferMinutes: buffer,
-                slotIntervalMinutes: interval
+                slotIntervalMinutes: interval,
+                specialDay: Boolean(specialDay),
+                specialDayNote: specialDay?.note || ""
             },
             slots
         });
