@@ -10,79 +10,26 @@ import MyReservations from "./pages/MyReservations";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminTables from "./pages/AdminTables";
 import AdminBookings from "./pages/AdminBookings";
+import AdminSettings from "./pages/AdminSettings";
 
 import AdminRoute from "./components/AdminRoute";
 
 function App() {
     return (
         <BrowserRouter>
-
             <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/reservation" element={<Reservation />} />
+                <Route path="/reservations" element={<MyReservations />} />
 
-                {/* Customer Pages */}
-
-                <Route
-                    path="/"
-                    element={<Home />}
-                />
-
-                <Route
-                    path="/register"
-                    element={<Register />}
-                />
-
-                <Route
-                    path="/login"
-                    element={<Login />}
-                />
-
-                <Route
-                    path="/profile"
-                    element={<Profile />}
-                />
-
-                <Route
-                    path="/reservation"
-                    element={<Reservation />}
-                />
-
-                <Route
-                    path="/reservations"
-                    element={<MyReservations />}
-                />
-
-
-                {/* Admin Pages */}
-
-                <Route
-                    path="/admin"
-                    element={
-                        <AdminRoute>
-                            <AdminDashboard />
-                        </AdminRoute>
-                    }
-                />
-
-                <Route
-                    path="/admin/tables"
-                    element={
-                        <AdminRoute>
-                            <AdminTables />
-                        </AdminRoute>
-                    }
-                />
-
-                <Route
-                    path="/admin/bookings"
-                    element={
-                        <AdminRoute>
-                            <AdminBookings />
-                        </AdminRoute>
-                    }
-                />
-
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/tables" element={<AdminRoute><AdminTables /></AdminRoute>} />
+                <Route path="/admin/bookings" element={<AdminRoute><AdminBookings /></AdminRoute>} />
+                <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
             </Routes>
-
         </BrowserRouter>
     );
 }
