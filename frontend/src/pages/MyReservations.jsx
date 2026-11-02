@@ -6,14 +6,18 @@ const localDateKey = (date) => [date.getFullYear(), String(date.getMonth() + 1).
 const formatTime = (time) => { const parts = time.split(":").map(Number); return `${parts[0] % 12 || 12}:${String(parts[1]).padStart(2, "0")} ${parts[0] >= 12 ? "PM" : "AM"}`; };
 
 const loadRazorpayScript = () => new Promise((resolve) => {
-    if (window.Razorpay) {
-        resolve(true);
+    if (window.Razorpay) { resolve(true); return; }
+    const existingScript = document.getElementById("razorpay-checkout-script");
+    if (existingScript) {
+        existingScript.addEventListener("load", () => resolve(Boolean(window.Razorpay)), { once: true });
+        existingScript.addEventListener("error", () => resolve(false), { once: true });
         return;
     }
-
     const script = document.createElement("script");
+    script.id = "razorpay-checkout-script";
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
+    script.async = true;
+    script.onload = () => resolve(Boolean(window.Razorpay));
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
 });
@@ -177,14 +181,16 @@ function MyReservations() {
                 }
             );
             const orderData = await orderResponse.json();
-            if (!orderResponse.ok) {
-                throw new Error(orderData.message || "Could not start payment");
+            if (!orderResponse.ok) throw new Error(orderData.message || orderData.error || "Could not create Razorpay order");
+            if (!window.Razorpay) throw new Error("Razorpay Checkout did not load. Disable script blockers and try again.");
+            if (!orderData.keyId || !orderData.orderId || Number(orderData.amount) <= 0) {
+                throw new Error("Razorpay returned incomplete order details. Check backend test keys and booking amount.");
             }
-
-            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            let user = {};
+            try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
             const checkout = new window.Razorpay({
-                key: orderData.keyId,
-                amount: orderData.amount,
+                key: String(orderData.keyId).trim(),
+                amount: Number(orderData.amount),
                 currency: orderData.currency,
                 name: "Restaurant Reservation",
                 description: `Booking fee for table ${reservation.table?.tableNumber || ""}`,
@@ -233,7 +239,9 @@ function MyReservations() {
                 setMessage(event.error?.description || "Payment failed. Please try again.");
             });
 
-            checkout.open();
+            try { checkout.open(); } catch (openError) {
+                throw new Error(openError.message || "Razorpay checkout could not be opened.");
+            }
         } catch (error) {
             setMessage(error.message || "Unable to start payment.");
             setPaymentProcessingId(null);
@@ -506,12 +514,9 @@ function MyReservations() {
                                     ).toLocaleString()}
                                 </p>
 
-                                {reservation.bookingFee !== undefined && (
-                                    <p>
-                                        <strong>Booking fee:</strong>{" "}
-                                        ₹{Number(reservation.bookingFee || 0).toLocaleString("en-IN")}
-                                    </p>
-                                )}
+                                {reservation.pricingMode && <p><strong>Pricing:</strong> {reservation.pricingMode === "full_table" ? "Full table" : "Per person"}</p>}
+                                {reservation.tablePrice !== undefined && <p><strong>Table price:</strong> ₹{Number(reservation.tablePrice || 0).toLocaleString("en-IN")}</p>}
+                                {reservation.bookingFee !== undefined && <p><strong>Total booking amount:</strong> ₹{Number(reservation.bookingFee || 0).toLocaleString("en-IN")}</p>}
 
                                 <p>
                                     <strong>Payment method:</strong>{" "}
