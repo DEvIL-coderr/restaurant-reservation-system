@@ -1,6 +1,6 @@
 const SpecialDay = require("../models/SpecialDay");
 
-const validTime = (value) => typeof value === "string" && /^([01]\\d|2[0-3]):[0-5]\\d$/.test(value);
+const validTime = (value) => typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 
 const getSpecialDays = async (req, res) => {
     try {
@@ -16,7 +16,7 @@ const getSpecialDays = async (req, res) => {
 const createSpecialDay = async (req, res) => {
     try {
         const { date, isClosed, openTime, closeTime, note } = req.body;
-        if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date || "") || typeof isClosed !== "boolean") {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "") || typeof isClosed !== "boolean") {
             return res.status(400).json({ message: "Select a valid date and opening status" });
         }
         if (!isClosed && (!validTime(openTime) || !validTime(closeTime) || openTime >= closeTime)) {
