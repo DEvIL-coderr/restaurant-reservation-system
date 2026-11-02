@@ -513,14 +513,12 @@ function MyReservations() {
                                     </p>
                                 )}
 
-                                {reservation.bookingFee > 0 && (
-                                    <p>
-                                        <strong>Payment method:</strong>{" "}
-                                        {reservation.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online payment"}
-                                    </p>
-                                )}
+                                <p>
+                                    <strong>Payment method:</strong>{" "}
+                                    {reservation.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online payment"}
+                                </p>
 
-                                {reservation.bookingFee > 0 && (
+                                {(reservation.bookingFee > 0 || reservation.paymentMethod === "pay_at_restaurant") && (
                                     <p>
                                         <strong>Payment status:</strong>{" "}
                                         <span className={reservation.paymentStatus === "paid" ? "status status-confirmed" : "status status-pending"}>
@@ -554,7 +552,7 @@ function MyReservations() {
                                     reservation.paymentStatus !== "paid" && (
                                     <div style={{ marginTop: "16px", padding: "16px", background: "#f2f8f2", borderRadius: "10px", borderLeft: "4px solid #4d8a59" }}>
                                         <strong>Pay at the restaurant</strong>
-                                        <p style={{ margin: "7px 0 0" }}>You selected to pay when you arrive. Please pay ₹{Number(reservation.bookingFee || 0).toLocaleString("en-IN")} at the restaurant counter. The team will update your payment status after receiving it.</p>
+                                        <p style={{ margin: "7px 0 0" }}>{Number(reservation.bookingFee || 0) > 0 ? `Your booking fee is ₹${Number(reservation.bookingFee).toLocaleString("en-IN")}. Please pay at the restaurant counter when you arrive.` : "You selected to pay the restaurant bill when you arrive. The final bill will be calculated at the restaurant."} The team will update your payment status after receiving payment.</p>
                                     </div>
                                 )}
 
