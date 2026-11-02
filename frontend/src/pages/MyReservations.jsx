@@ -1,12 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+const loadRazorpayScript = () => new Promise((resolve) => {
+    if (window.Razorpay) {
+        resolve(true);
+        return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+});
+
 function MyReservations() {
     const navigate = useNavigate();
 
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState("");
+    const [paymentProcessingId, setPaymentProcessingId] = useState(null);
 
     const [editingId, setEditingId] = useState(null);
     const [editDate, setEditDate] = useState("");
@@ -124,6 +138,91 @@ function MyReservations() {
             }
         } catch (error) {
             setMessage("Server connection failed");
+        }
+    };
+
+    // =========================
+    // RAZORPAY PAYMENT
+    // =========================
+
+    const handlePayment = async (reservation) => {
+        setPaymentProcessingId(reservation._id);
+        setMessage("");
+
+        try {
+            const scriptLoaded = await loadRazorpayScript();
+            if (!scriptLoaded) {
+                throw new Error("Unable to load Razorpay Checkout. Please check your internet connection.");
+            }
+
+            const orderResponse = await fetch(
+                `http://localhost:5000/api/reservations/${reservation._id}/payment/order`,
+                {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+            const orderData = await orderResponse.json();
+            if (!orderResponse.ok) {
+                throw new Error(orderData.message || "Could not start payment");
+            }
+
+            const user = JSON.parse(localStorage.getItem("user") || "{}");
+            const checkout = new window.Razorpay({
+                key: orderData.keyId,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: "Restaurant Reservation",
+                description: `Booking fee for table ${reservation.table?.tableNumber || ""}`,
+                order_id: orderData.orderId,
+                prefill: {
+                    name: user.name || "",
+                    email: user.email || ""
+                },
+                theme: { color: "#8b4513" },
+                handler: async (paymentResponse) => {
+                    try {
+                        const verifyResponse = await fetch(
+                            `http://localhost:5000/api/reservations/${reservation._id}/payment/verify`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${token}`
+                                },
+                                body: JSON.stringify(paymentResponse)
+                            }
+                        );
+                        const verifyData = await verifyResponse.json();
+                        if (!verifyResponse.ok) {
+                            throw new Error(verifyData.message || "Payment verification failed");
+                        }
+
+                        setMessage("Payment completed and verified successfully.");
+                        await fetchReservations();
+                    } catch (verifyError) {
+                        setMessage(verifyError.message || "Payment verification failed.");
+                    } finally {
+                        setPaymentProcessingId(null);
+                    }
+                },
+                modal: {
+                    ondismiss: () => {
+                        setPaymentProcessingId(null);
+                        setMessage("Payment window closed. You can try again.");
+                    }
+                }
+            });
+
+            checkout.on("payment.failed", (event) => {
+                setPaymentProcessingId(null);
+                setMessage(event.error?.description || "Payment failed. Please try again.");
+            });
+
+            checkout.open();
+        } catch (error) {
+            setMessage(error.message || "Unable to start payment.");
+            setPaymentProcessingId(null);
         }
     };
 
@@ -414,6 +513,15 @@ function MyReservations() {
                                     </p>
                                 )}
 
+                                {reservation.bookingFee > 0 && (
+                                    <p>
+                                        <strong>Payment status:</strong>{" "}
+                                        <span className={reservation.paymentStatus === "paid" ? "status status-confirmed" : "status status-pending"}>
+                                            {reservation.paymentStatus || "pending"}
+                                        </span>
+                                    </p>
+                                )}
+
                                 <p>
                                     <strong>
                                         Status:
@@ -431,6 +539,24 @@ function MyReservations() {
                                     <div role="status" style={{ marginTop: "16px", padding: "16px", borderRadius: "10px", background: "#fff1ed", borderLeft: "4px solid #b23b3b" }}>
                                         <strong style={{ color: "#8f2929" }}>Message from the restaurant</strong>
                                         <p style={{ margin: "8px 0 0", color: "#65443b" }}>{reservation.cancellationMessage}</p>
+                                    </div>
+                                )}
+
+                                {reservation.status === "confirmed" &&
+                                    Number(reservation.bookingFee || 0) > 0 &&
+                                    reservation.paymentStatus !== "paid" && (
+                                    <div style={{ marginTop: "16px", padding: "16px", background: "#fff8f0", borderRadius: "10px" }}>
+                                        <p style={{ margin: "0 0 10px", color: "#76513a" }}>
+                                            Your reservation is confirmed. Complete the booking fee payment of ₹{Number(reservation.bookingFee).toLocaleString("en-IN")}.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            className="save-button"
+                                            disabled={paymentProcessingId === reservation._id}
+                                            onClick={() => handlePayment(reservation)}
+                                        >
+                                            {paymentProcessingId === reservation._id ? "Opening secure checkout..." : "Pay Booking Fee"}
+                                        </button>
                                     </div>
                                 )}
 
