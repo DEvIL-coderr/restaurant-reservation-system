@@ -120,88 +120,96 @@ const createReservation = async (req, res) => {
             bufferMinutes
         });
 
-        // Send notifications after the reservation is saved.
-        const customer = await User.findById(req.userId).select("name email");
-        const bookingDateText = formatReservationDate(bookingDate);
-        const customerName = escapeHtml(customer?.name || "Customer");
-        const tableName = escapeHtml(selectedTable.tableNumber || selectedTable.category || "Selected table");
-
-        if (customer?.email) {
-            await sendEmail({
-                to: customer.email,
-                subject: "Your restaurant reservation request",
-                text: `Hello ${customer.name || "Customer"}, your reservation request for ${bookingDateText} has been received. Guests: ${guestCount}. Table: ${selectedTable.tableNumber || selectedTable.category || "Selected table"}. Status: pending.`,
-                html: `<h2>Reservation request received</h2><p>Hello ${customerName},</p><p>Your reservation request has been received.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${guestCount}<br><strong>Table:</strong> ${tableName}<br><strong>Status:</strong> Pending admin approval</p><p>Thank you for choosing our restaurant.</p>`
+        try {
+            // Send notifications after the reservation is saved.
+            try {
+            const customer = await User.findById(req.userId).select("name email");
+                const bookingDateText = formatReservationDate(bookingDate);
+                const customerName = escapeHtml(customer?.name || "Customer");
+                const tableName = escapeHtml(selectedTable.tableNumber || selectedTable.category || "Selected table");
+        
+                if (customer?.email) {
+                    await sendEmail({
+                        to: customer.email,
+                        subject: "Your restaurant reservation request",
+                        text: `Hello ${customer.name || "Customer"}, your reservation request for ${bookingDateText} has been received. Guests: ${guestCount}. Table: ${selectedTable.tableNumber || selectedTable.category || "Selected table"}. Status: pending.`,
+                        html: `<h2>Reservation request received</h2><p>Hello ${customerName},</p><p>Your reservation request has been received.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${guestCount}<br><strong>Table:</strong> ${tableName}<br><strong>Status:</strong> Pending admin approval</p><p>Thank you for choosing our restaurant.</p>`
+                    });
+                }
+        
+                if (process.env.ADMIN_EMAIL) {
+                    await sendEmail({
+                        to: process.env.ADMIN_EMAIL,
+                        subject: "New restaurant reservation",
+                        text: `A new reservation was made by ${customer?.name || "Customer"} (${customer?.email || "no email"}). Date: ${bookingDateText}. Guests: ${guestCount}. Table: ${selectedTable.tableNumber || selectedTable.category || "Selected table"}.`,
+                        html: `<h2>New reservation received</h2><p><strong>Customer:</strong> ${customerName}<br><strong>Email:</strong> ${escapeHtml(customer?.email || "Not available")}<br><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${guestCount}<br><strong>Table:</strong> ${tableName}</p>`
+                    });
+                }
+            } catch (emailError) {
+                console.error("booking notification error:", emailError.message);
+            }
+    
+            res.status(201).json({
+                message: "Reservation created successfully",
+                reservation
+            });
+        } catch (error) {
+            console.log(error);
+            res.status(500).json({
+                message: "Server error",
+                error: error.message
             });
         }
-
-        if (process.env.ADMIN_EMAIL) {
-            await sendEmail({
-                to: process.env.ADMIN_EMAIL,
-                subject: "New restaurant reservation",
-                text: `A new reservation was made by ${customer?.name || "Customer"} (${customer?.email || "no email"}). Date: ${bookingDateText}. Guests: ${guestCount}. Table: ${selectedTable.tableNumber || selectedTable.category || "Selected table"}.`,
-                html: `<h2>New reservation received</h2><p><strong>Customer:</strong> ${customerName}<br><strong>Email:</strong> ${escapeHtml(customer?.email || "Not available")}<br><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${guestCount}<br><strong>Table:</strong> ${tableName}</p>`
+    };
+    
+    const getMyReservations = async (req, res) => {
+        try {
+            const reservations = await Reservation.find({
+                user: req.userId
+            }).populate("table");
+    
+            res.json(reservations);
+    
+        } catch (error) {
+            res.status(500).json({
+                message: "Server error",
+                error: error.message
             });
         }
-
-        res.status(201).json({
-            message: "Reservation created successfully",
-            reservation
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            message: "Server error",
-            error: error.message
-        });
-    }
-};
-
-const getMyReservations = async (req, res) => {
-    try {
-        const reservations = await Reservation.find({
-            user: req.userId
-        }).populate("table");
-
-        res.json(reservations);
-
-    } catch (error) {
-        res.status(500).json({
-            message: "Server error",
-            error: error.message
-        });
-    }
-};
-
-const cancelReservation = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const reservation = await Reservation.findOne({
-            _id: id,
-            user: req.userId
-        });
-
-        if (!reservation) {
-            return res.status(404).json({
-                message: "Reservation not found"
+    };
+    
+    const cancelReservation = async (req, res) => {
+        try {
+            const { id } = req.params;
+    
+            const reservation = await Reservation.findOne({
+                _id: id,
+                user: req.userId
             });
-        }
-
-        reservation.status = "cancelled";
-
-        await reservation.save();
-
-        const customer = await User.findById(req.userId).select("name email");
-        const table = await Table.findById(reservation.table).select("tableNumber category");
-        if (customer?.email) {
-            const bookingDateText = formatReservationDate(reservation.date);
-            await sendEmail({
-                to: customer.email,
-                subject: "Your restaurant reservation was cancelled",
-                text: `Hello ${customer.name || "Customer"}, your reservation for ${bookingDateText} has been cancelled.`,
-                html: `<h2>Reservation cancelled</h2><p>Hello ${escapeHtml(customer.name || "Customer")},</p><p>Your reservation has been cancelled.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Table:</strong> ${escapeHtml(table?.tableNumber || table?.category || "Selected table")}</p>`
-            });
+    
+            if (!reservation) {
+                return res.status(404).json({
+                    message: "Reservation not found"
+                });
+            }
+    
+            reservation.status = "cancelled";
+    
+            await reservation.save();
+    
+            const customer = await User.findById(req.userId).select("name email");
+            const table = await Table.findById(reservation.table).select("tableNumber category");
+            if (customer?.email) {
+                const bookingDateText = formatReservationDate(reservation.date);
+                await sendEmail({
+                    to: customer.email,
+                    subject: "Your restaurant reservation was cancelled",
+                    text: `Hello ${customer.name || "Customer"}, your reservation for ${bookingDateText} has been cancelled.`,
+                    html: `<h2>Reservation cancelled</h2><p>Hello ${escapeHtml(customer.name || "Customer")},</p><p>Your reservation has been cancelled.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Table:</strong> ${escapeHtml(table?.tableNumber || table?.category || "Selected table")}</p>`
+                });
+            }
+        } catch (emailError) {
+            console.error("customer cancellation notification error:", emailError.message);
         }
 
         res.json({
@@ -390,32 +398,36 @@ const adminUpdateReservation = async (req, res) => {
                     "tableNumber capacity category"
                 );
 
-        if (
-            previousStatus !== updatedReservation.status &&
-            ["confirmed", "cancelled"].includes(updatedReservation.status) &&
-            updatedReservation.user?.email
-        ) {
-            const isConfirmed = updatedReservation.status === "confirmed";
-            const bookingDateText = formatReservationDate(updatedReservation.date);
-            const tableName = escapeHtml(
-                updatedReservation.table?.tableNumber ||
-                updatedReservation.table?.category ||
-                "Selected table"
-            );
-            const customerName = escapeHtml(updatedReservation.user.name || "Customer");
-
-            await sendEmail({
-                to: updatedReservation.user.email,
-                subject: isConfirmed
-                    ? "Your restaurant reservation is confirmed"
-                    : "Your restaurant reservation was cancelled",
-                text: isConfirmed
-                    ? `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} is confirmed.`
-                    : `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} has been cancelled by the restaurant.`,
-                html: isConfirmed
-                    ? `<h2>Reservation confirmed</h2><p>Hello ${customerName},</p><p>Your reservation is confirmed. We look forward to seeing you!</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${updatedReservation.guests}<br><strong>Table:</strong> ${tableName}</p>`
-                    : `<h2>Reservation cancelled</h2><p>Hello ${customerName},</p><p>Your reservation has been cancelled by the restaurant.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Table:</strong> ${tableName}</p>`
-            });
+        try {
+            if (
+                previousStatus !== updatedReservation.status &&
+                ["confirmed", "cancelled"].includes(updatedReservation.status) &&
+                updatedReservation.user?.email
+            ) {
+                const isConfirmed = updatedReservation.status === "confirmed";
+                const bookingDateText = formatReservationDate(updatedReservation.date);
+                const tableName = escapeHtml(
+                    updatedReservation.table?.tableNumber ||
+                    updatedReservation.table?.category ||
+                    "Selected table"
+                );
+                const customerName = escapeHtml(updatedReservation.user.name || "Customer");
+    
+                await sendEmail({
+                    to: updatedReservation.user.email,
+                    subject: isConfirmed
+                        ? "Your restaurant reservation is confirmed"
+                        : "Your restaurant reservation was cancelled",
+                    text: isConfirmed
+                        ? `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} is confirmed.`
+                        : `Hello ${updatedReservation.user.name || "Customer"}, your reservation for ${bookingDateText} has been cancelled by the restaurant.`,
+                    html: isConfirmed
+                        ? `<h2>Reservation confirmed</h2><p>Hello ${customerName},</p><p>Your reservation is confirmed. We look forward to seeing you!</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Guests:</strong> ${updatedReservation.guests}<br><strong>Table:</strong> ${tableName}</p>`
+                        : `<h2>Reservation cancelled</h2><p>Hello ${customerName},</p><p>Your reservation has been cancelled by the restaurant.</p><p><strong>Date and time:</strong> ${bookingDateText}<br><strong>Table:</strong> ${tableName}</p>`
+                });
+            }
+        } catch (emailError) {
+            console.error("admin status notification error:", emailError.message);
         }
 
         res.json({
