@@ -39,10 +39,13 @@ const createPaymentOrder = async (req, res) => {
             return res.status(400).json({ message: "No payment is due for this reservation." });
         }
 
-        const razorpay = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID,
-            key_secret: process.env.RAZORPAY_KEY_SECRET
-        });
+        const keyId = String(process.env.RAZORPAY_KEY_ID || "").trim();
+        const keySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+        if (!keyId || !keySecret) {
+            return res.status(503).json({ message: "Razorpay keys are missing. Check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend/.env." });
+        }
+
+        const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
 
         const order = await razorpay.orders.create({
             amount: amountInPaise,
@@ -63,13 +66,13 @@ const createPaymentOrder = async (req, res) => {
             orderId: order.id,
             amount: order.amount,
             currency: order.currency,
-            keyId: process.env.RAZORPAY_KEY_ID
+            keyId
         });
     } catch (error) {
         console.error("Razorpay order creation error:", error.message);
         return res.status(500).json({
             message: "Unable to create payment order",
-            error: error.message
+            error: error.error?.description || error.message
         });
     }
 };
@@ -95,8 +98,13 @@ const verifyPayment = async (req, res) => {
             return res.status(400).json({ message: "Payment order does not match this reservation." });
         }
 
+        const razorpaySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+        if (!razorpaySecret) {
+            return res.status(503).json({ message: "Razorpay verification is not configured. Check backend/.env." });
+        }
+
         const expectedSignature = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+            .createHmac("sha256", razorpaySecret)
             .update(`${razorpay_order_id}|${razorpay_payment_id}`)
             .digest("hex");
 
@@ -104,7 +112,6 @@ const verifyPayment = async (req, res) => {
         const receivedBuffer = Buffer.from(razorpay_signature, "hex");
 
         if (
-            !process.env.RAZORPAY_KEY_SECRET ||
             expectedBuffer.length !== receivedBuffer.length ||
             !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
         ) {
