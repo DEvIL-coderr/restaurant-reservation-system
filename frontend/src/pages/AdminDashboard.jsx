@@ -115,6 +115,12 @@ function AdminDashboard() {
                             <p>Configure booking duration, buffer time and weekly opening hours.</p>
                         </Link>
 
+                        <Link to="/admin/special-days" className="admin-card">
+                            <div className="admin-card-icon">🎉</div>
+                            <h2>Special Days & Holidays</h2>
+                            <p>Close the restaurant or set different hours for holidays and events.</p>
+                        </Link>
+
                     </div>
 
                 </div>
