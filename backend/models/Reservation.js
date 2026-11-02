@@ -24,6 +24,16 @@ const reservationSchema = new mongoose.Schema(
             required: true
         },
 
+        durationMinutes: {
+            type: Number,
+            min: 30
+        },
+
+        bufferMinutes: {
+            type: Number,
+            min: 0
+        },
+
         status: {
             type: String,
             enum: ["pending", "confirmed", "cancelled"],
