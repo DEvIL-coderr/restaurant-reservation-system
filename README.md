@@ -237,3 +237,13 @@ GitHub: https://github.com/DEvIL-coderr/restaurant-reservation-system
 ---
 
 Developed as a Project-Based Learning project at Brainware University.
+
+
+## Table pricing and reservation changes
+
+- Admins can configure a per-person price and a full-table price for each table from Table Management.
+- Customers choose either per-person pricing (per-person price multiplied by guest count) or the full-table price when booking.
+- The reservation stores the selected pricing mode and a snapshot of the calculated table price. Any restaurant-wide booking fee configured in Settings is added to the table price.
+- Online payment uses the saved reservation total and creates the Razorpay order on the backend. Use Razorpay Test Mode credentials in `backend/.env`; never commit the secret key.
+- When modifying a reservation, customers now choose a date on a calendar, check live available time slots, select an available table, and submit the change. The server rechecks opening hours, special closures, table capacity, and overlapping reservations.
+- A reservation that has already been paid cannot currently be modified online; contact the restaurant for assistance so a payment adjustment or refund can be handled safely.
