@@ -375,6 +375,21 @@ function Reservation() {
                                 <p>No tables are available for this time.</p>
                             )}
 
+                            {selectedTable && payAtRestaurantAvailable && (
+                                <div style={{ marginTop: "18px", padding: "16px", borderRadius: "10px", background: "#fff8f0", border: "1px solid #ead8c8" }}>
+                                    <strong>Choose payment method</strong>
+                                    <label style={{ display: "flex", gap: "9px", alignItems: "center", marginTop: "12px" }}>
+                                        <input type="radio" name="bookingPaymentMethod" value="online" checked={paymentMethod === "online"} onChange={() => setPaymentMethod("online")} />
+                                        Pay online after confirmation
+                                    </label>
+                                    <label style={{ display: "flex", gap: "9px", alignItems: "center", marginTop: "10px" }}>
+                                        <input type="radio" name="bookingPaymentMethod" value="pay_at_restaurant" checked={paymentMethod === "pay_at_restaurant"} onChange={() => setPaymentMethod("pay_at_restaurant")} />
+                                        Pay at restaurant when you arrive
+                                    </label>
+                                    <small style={{ display: "block", marginTop: "9px", color: "#765c49" }}>Available for this table from {settings.payAtRestaurantStartTime || "00:00"} to {settings.payAtRestaurantEndTime || "23:59"}.</small>
+                                </div>
+                            )}
+
                             {selectedTable && (
                                 <button className="primary-button confirm-booking-button" onClick={handleReservation} disabled={booking}>
                                     {booking ? "Confirming..." : "Confirm Reservation"}
