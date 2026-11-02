@@ -359,6 +359,9 @@ function AdminBookings() {
                                                     {booking.guests}
                                                 </p>
                                                 <p><strong>Payment:</strong> {booking.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online"}</p>
+                                                <p><strong>Pricing:</strong> {booking.pricingMode === "full_table" ? "Full table" : "Per person"}</p>
+                                                <p><strong>Table price:</strong> ₹{Number(booking.tablePrice || 0).toLocaleString("en-IN")}</p>
+                                                <p><strong>Total booking amount:</strong> ₹{Number(booking.bookingFee || 0).toLocaleString("en-IN")}</p>
                                                 <p><strong>Payment status:</strong> {booking.paymentStatus || "not_required"}</p>
                                                 {booking.paymentMethod === "pay_at_restaurant" && booking.paymentStatus !== "paid" && booking.status === "confirmed" && (
                                                     <button type="button" className="save-button" onClick={() => markOnSitePaymentReceived(booking._id)}>
