@@ -54,6 +54,7 @@ A web-based application that allows customers to view table availability, make r
 - JSON Web Token (JWT) authentication
 - bcryptjs for password hashing
 - Nodemailer for SMTP email notifications
+- Razorpay for online booking-fee payments with server-side signature verification
 
 ### Database
 - MongoDB
@@ -129,11 +130,17 @@ SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_16_character_gmail_app_password
 EMAIL_FROM="Restaurant Reservations <your_email@gmail.com>"
 ADMIN_EMAIL=admin_email@example.com
+
+# Razorpay TEST MODE credentials
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_test_key_secret
 ```
 
 Do not commit the actual `.env` file or share your secrets publicly.
 
 Email notifications use Nodemailer and SMTP. For Gmail, enable 2-Step Verification on your Google account and create a Google **App Password**. Use that 16-character App Password as `SMTP_PASS` (not your normal Gmail password). Set `ADMIN_EMAIL` to the address that should receive new-booking alerts. If SMTP settings are missing or the mail provider is unavailable, reservations will still be saved; the backend logs the email issue.
+
+For online payments, create Razorpay API keys in **Test Mode** and add `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to the backend `.env` file. Customers can pay the saved booking fee only after an administrator confirms the reservation. The backend creates the order from the fee stored on that reservation and verifies Razorpay's HMAC signature before marking it paid. Never put the Razorpay secret in frontend code or commit it. Use test cards/UPI details supplied in the Razorpay test dashboard; do not enable live payments until the integration has been tested.
 
 The backend also checks for upcoming **confirmed** reservations every 60 seconds. When a reservation is within the next 24 hours and its reminder has not been sent, the customer receives one reminder email. The reminder is marked as sent only after the SMTP helper reports a successful send. The scheduler runs while the backend server is running; it does not send reminders while the server is stopped.
 
@@ -195,6 +202,8 @@ The backend provides REST APIs for user authentication, table management, reserv
 | GET | `/api/reservations` | View the customer's reservations |
 | PUT | `/api/reservations/:id` | Modify a reservation |
 | PUT | `/api/reservations/:id/cancel` | Cancel a reservation |
+| POST | `/api/reservations/:id/payment/order` | Create a Razorpay order for a confirmed reservation |
+| POST | `/api/reservations/:id/payment/verify` | Verify payment and mark the reservation as paid |
 | GET | `/api/reservations/all` | View all reservations (admin) |
 | PUT | `/api/reservations/admin/:id` | Update a reservation (admin) |
 | DELETE | `/api/reservations/admin/:id` | Delete a cancelled reservation (admin) |
