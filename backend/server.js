@@ -7,38 +7,30 @@ require("dotenv").config();
 const userRoutes = require("./routes/userRoutes");
 const tableRoutes = require("./routes/tableRoutes");
 const reservationRoutes = require("./routes/reservationRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.post("/test", (req, res) => {
-    res.send("POST is working");
-});
 
 app.use("/api/users", userRoutes);
-// console.log("REGISTERING TABLE ROUTES");
-// app.post("/test", (req, res) => {
-//     res.json({
-//         message: "Server POST is working"
-//     });
-// });
 app.use("/api/tables", tableRoutes);
 app.use("/api/reservations", reservationRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.get("/", (req, res) => {
     res.send("Restaurant Reservation API is running");
 });
-
-// MongoDB connection...
 
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
         console.log("MongoDB connected");
 
-        app.listen(process.env.PORT, () => {
-            console.log(`Server running on port ${process.env.PORT}`);
+        const port = process.env.PORT || 5000;
+        app.listen(port, () => {
+            console.log(`Server running on port ${port}`);
         });
     })
     .catch((error) => {
