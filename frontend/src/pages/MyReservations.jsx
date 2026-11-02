@@ -1,5 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const localDateKey = (date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+const formatTime = (time) => { const parts = time.split(":").map(Number); return `${parts[0] % 12 || 12}:${String(parts[1]).padStart(2, "0")} ${parts[0] >= 12 ? "PM" : "AM"}`; };
 
 const loadRazorpayScript = () => new Promise((resolve) => {
     if (window.Razorpay) {
@@ -25,6 +29,14 @@ function MyReservations() {
     const [editingId, setEditingId] = useState(null);
     const [editDate, setEditDate] = useState("");
     const [editGuests, setEditGuests] = useState("");
+    const [editMonth, setEditMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    const [editSlots, setEditSlots] = useState([]);
+    const [editSelectedTime, setEditSelectedTime] = useState("");
+    const [editSelectedTable, setEditSelectedTable] = useState("");
+    const [editSearching, setEditSearching] = useState(false);
+    const [editSearched, setEditSearched] = useState(false);
+    const [editWeeklyHours, setEditWeeklyHours] = useState([]);
+    const [editSpecialDays, setEditSpecialDays] = useState([]);
 
     const token = localStorage.getItem("token");
 
@@ -35,6 +47,8 @@ function MyReservations() {
         }
 
         fetchReservations();
+        fetch("http://localhost:5000/api/settings").then((r) => r.json()).then((d) => setEditWeeklyHours(d.settings?.weeklyHours || [])).catch(console.error);
+        fetch("http://localhost:5000/api/special-days").then((r) => r.json()).then((d) => setEditSpecialDays(d.specialDays || [])).catch(console.error);
     }, [navigate, token]);
 
     // =========================
@@ -226,31 +240,50 @@ function MyReservations() {
         }
     };
 
+    const editCalendarDays = useMemo(() => {
+        const y = editMonth.getFullYear(); const m = editMonth.getMonth();
+        return [...Array.from({ length: new Date(y, m, 1).getDay() }, () => null), ...Array.from({ length: new Date(y, m + 1, 0).getDate() }, (_, i) => i + 1)];
+    }, [editMonth]);
+
+    const isEditClosedDate = (day) => {
+        if (!day) return true;
+        const key = [editMonth.getFullYear(), String(editMonth.getMonth() + 1).padStart(2, "0"), String(day).padStart(2, "0")].join("-");
+        const special = editSpecialDays.find((item) => item.date === key);
+        if (special) return special.isClosed;
+        const weekday = new Date(editMonth.getFullYear(), editMonth.getMonth(), day).toLocaleDateString("en-US", { weekday: "long" });
+        const hours = editWeeklyHours.find((item) => item.day === weekday);
+        return Boolean(hours && !hours.isOpen);
+    };
+
+    const searchEditAvailability = async () => {
+        if (!editDate || !editGuests) { setMessage("Choose a date and guest count first."); return; }
+        setEditSearching(true); setEditSlots([]); setEditSelectedTime(""); setEditSelectedTable(""); setEditSearched(false);
+        try {
+            const params = new URLSearchParams({ date: editDate, guests: String(editGuests), excludeReservationId: editingId });
+            const response = await fetch("http://localhost:5000/api/tables/available?" + params.toString());
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || "Unable to check availability");
+            setEditSlots(Array.isArray(data.slots) ? data.slots : []); setEditSearched(true);
+            if (data.closed) setMessage(data.message || "Restaurant is closed on this date.");
+            else if (!data.slots?.length) setMessage("No available times on this date.");
+        } catch (error) { setMessage(error.message || "Unable to check availability."); }
+        finally { setEditSearching(false); }
+    };
+
     // =========================
     // START MODIFY
     // =========================
 
     const startModify = (reservation) => {
         const date = new Date(reservation.date);
-
-        const formattedDate =
-            date.getFullYear() +
-            "-" +
-            String(date.getMonth() + 1).padStart(2, "0") +
-            "-" +
-            String(date.getDate()).padStart(2, "0") +
-            "T" +
-            String(date.getHours()).padStart(2, "0") +
-            ":" +
-            String(date.getMinutes()).padStart(2, "0");
-
         setEditingId(reservation._id);
-        setEditDate(formattedDate);
-        setEditGuests(reservation.guests);
-
-        setMessage("");
+        setEditDate(localDateKey(date));
+        setEditMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+        setEditGuests(String(reservation.guests));
+        setEditSelectedTime(String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0"));
+        setEditSelectedTable(String(reservation.table?._id || reservation.table || ""));
+        setEditSlots([]); setEditSearched(false); setMessage("");
     };
-
     // =========================
     // CANCEL EDIT
     // =========================
@@ -259,6 +292,7 @@ function MyReservations() {
         setEditingId(null);
         setEditDate("");
         setEditGuests("");
+        setEditSlots([]); setEditSelectedTime(""); setEditSelectedTable(""); setEditSearched(false);
     };
 
     // =========================
@@ -266,53 +300,19 @@ function MyReservations() {
     // =========================
 
     const handleModify = async () => {
-        if (!editDate || !editGuests) {
-            setMessage("Please enter date, time and number of guests");
-            return;
-        }
-
+        if (!editDate || !editSelectedTime || !editSelectedTable || !editGuests) { setMessage("Select a date, available time, table and guest count."); return; }
         try {
-            const response = await fetch(
-                `http://localhost:5000/api/reservations/${editingId}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        date: editDate,
-                        guests: Number(editGuests)
-                    })
-                }
-            );
-
+            const response = await fetch("http://localhost:5000/api/reservations/" + editingId, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+                body: JSON.stringify({ date: editDate + "T" + editSelectedTime, table: editSelectedTable, guests: Number(editGuests) })
+            });
             const data = await response.json();
-
-            if (response.ok) {
-                setReservations(
-                    reservations.map((reservation) =>
-                        reservation._id === editingId
-                            ? data.reservation
-                            : reservation
-                    )
-                );
-
-                setMessage("Reservation updated successfully");
-
-                setEditingId(null);
-                setEditDate("");
-                setEditGuests("");
-            } else {
-                setMessage(
-                    data.message || "Failed to update reservation"
-                );
-            }
-        } catch (error) {
-            setMessage("Server connection failed");
-        }
+            if (!response.ok) throw new Error(data.message || "Failed to update reservation");
+            setReservations((current) => current.map((item) => item._id === editingId ? data.reservation : item));
+            setMessage(data.message || "Reservation updated successfully"); cancelEdit();
+        } catch (error) { setMessage(error.message || "Server connection failed"); }
     };
-
     // =========================
     // LOADING
     // =========================
@@ -621,54 +621,40 @@ function MyReservations() {
                                             Modify Reservation
                                         </h3>
 
-                                        <label>
-                                            Date & Time
-                                        </label>
-
-                                        <br />
-
-                                        <input
-                                            type="datetime-local"
-                                            value={editDate}
-                                            min={
-                                                new Date()
-                                                    .toISOString()
-                                                    .slice(0, 16)
-                                            }
-                                            onChange={(e) =>
-                                                setEditDate(
-                                                    e.target.value
-                                                )
-                                            }
-                                        />
-
-                                        <br />
-
-                                        <label>
-                                            Number of Guests
-                                        </label>
-
-                                        <br />
-
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={editGuests}
-                                            onChange={(e) =>
-                                                setEditGuests(
-                                                    e.target.value
-                                                )
-                                            }
-                                        />
-
-                                        <br />
-
-                                        <button
-                                            className="save-button"
-                                            onClick={handleModify}
-                                        >
-                                            Save Changes
-                                        </button>
+                                        <label>Choose a new date</label>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "12px 0" }}>
+                                            <button type="button" className="edit-cancel-button" onClick={() => setEditMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>‹</button>
+                                            <strong>{editMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</strong>
+                                            <button type="button" className="edit-cancel-button" onClick={() => setEditMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>›</button>
+                                        </div>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "5px" }}>
+                                            {WEEKDAYS.map((day) => <small key={day} style={{ textAlign: "center" }}>{day}</small>)}
+                                            {editCalendarDays.map((day, index) => {
+                                                const value = day ? new Date(editMonth.getFullYear(), editMonth.getMonth(), day) : null;
+                                                if (value) value.setHours(0, 0, 0, 0);
+                                                const today = new Date(); today.setHours(0, 0, 0, 0);
+                                                const disabled = !day || value < today || isEditClosedDate(day);
+                                                const key = day ? localDateKey(value) : "empty-" + index;
+                                                const selected = editDate === key;
+                                                return <button key={key} type="button" disabled={disabled} onClick={() => { setEditDate(key); setEditSlots([]); setEditSearched(false); setEditSelectedTime(""); setEditSelectedTable(""); }} style={{ minHeight: "38px", borderRadius: "7px", border: selected ? "2px solid #76513a" : "1px solid #e8dfd6", background: selected ? "#76513a" : disabled ? "#f5f2ef" : "#fff", color: selected ? "#fff" : disabled ? "#bbb" : "#49372b" }}>{day || ""}</button>;
+                                            })}
+                                        </div>
+                                        <label style={{ display: "block", marginTop: "15px" }}>Number of Guests</label>
+                                        <input type="number" min="1" max="20" value={editGuests} onChange={(e) => { setEditGuests(e.target.value); setEditSlots([]); setEditSearched(false); setEditSelectedTime(""); setEditSelectedTable(""); }} />
+                                        <button type="button" className="save-button" style={{ marginTop: "12px" }} onClick={searchEditAvailability} disabled={editSearching || !editDate}>{editSearching ? "Checking schedule..." : "Show Available Times"}</button>
+                                        {editSearched && <div style={{ marginTop: "15px" }}>
+                                            <strong>Available times</strong>
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px", marginTop: "9px" }}>
+                                                {editSlots.map((slot) => <button key={slot.time} type="button" disabled={!slot.tables?.length} onClick={() => { setEditSelectedTime(slot.time); setEditSelectedTable(""); }} style={{ padding: "9px 5px", borderRadius: "8px", border: editSelectedTime === slot.time ? "2px solid #76513a" : "1px solid #e5d9ce", background: editSelectedTime === slot.time ? "#76513a" : "#fff", color: editSelectedTime === slot.time ? "#fff" : "#49372b" }}>{formatTime(slot.time)}<small style={{ display: "block" }}>{slot.tables?.length || "No"} table(s)</small></button>)}
+                                            </div>
+                                        </div>}
+                                        {editSelectedTime && <div style={{ marginTop: "15px" }}>
+                                            <strong>Available tables at {formatTime(editSelectedTime)}</strong>
+                                            <div style={{ display: "grid", gap: "8px", marginTop: "9px" }}>
+                                                {(editSlots.find((slot) => slot.time === editSelectedTime)?.tables || []).map((table) => <button key={table._id} type="button" onClick={() => setEditSelectedTable(table._id)} style={{ textAlign: "left", padding: "10px", borderRadius: "8px", border: editSelectedTable === table._id ? "2px solid #76513a" : "1px solid #e5d9ce", background: editSelectedTable === table._id ? "#fff8f0" : "#fff" }}>Table {table.tableNumber} · {table.category} · Capacity {table.capacity}</button>)}
+                                            </div>
+                                        </div>}
+                                        <button className="save-button" style={{ marginTop: "15px" }} onClick={handleModify} disabled={!editSelectedTable || !editSelectedTime}>Save Changes</button>
 
                                         <button
                                             className="edit-cancel-button"
