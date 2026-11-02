@@ -260,89 +260,115 @@ const cancelReservation = async (req, res) => {
 const updateReservation = async (req, res) => {
     try {
         const { id } = req.params;
-        const { date, guests } = req.body;
-
+        const { date, guests, table: requestedTable } = req.body;
         const reservation = await Reservation.findById(id);
 
-if (!reservation) {
-    return res.status(404).json({
-        message: "Reservation not found"
-    });
-}
-
-if (reservation.user.toString() !== req.userId) {
-    return res.status(403).json({
-        message: "You can only modify your own reservation"
-    });
-}
-
-if (reservation.status === "cancelled") {
-    return res.status(400).json({
-        message: "Cancelled reservation cannot be modified"
-    });
-}
-
-if (reservation.status === "confirmed") {
-    reservation.status = "pending";
-}
-
-        if (!reservation) {
-            return res.status(404).json({
-                message: "Reservation not found"
-            });
-        }
+        if (!reservation) return res.status(404).json({ message: "Reservation not found" });
         if (reservation.user.toString() !== req.userId) {
-    return res.status(403).json({
-        message: "You can only modify your own reservation"
-    });
-}
-
+            return res.status(403).json({ message: "You can only modify your own reservation" });
+        }
         if (reservation.status === "cancelled") {
+            return res.status(400).json({ message: "Cancelled reservation cannot be modified" });
+        }
+        if (reservation.paymentStatus === "paid") {
             return res.status(400).json({
-                message: "Cancelled reservation cannot be modified"
+                message: "This reservation is already paid. Please contact the restaurant to modify it."
             });
         }
 
-        const newDate = date || reservation.date;
-        const updatedDate = new Date(newDate);
+        const updatedDate = new Date(date || reservation.date);
+        const guestCount = guests === undefined ? reservation.guests : Number(guests);
+        const selectedTable = await Table.findById(requestedTable || reservation.table);
 
-if (updatedDate <= new Date()) {
-    return res.status(400).json({
-        message: "Reservation date and time must be in the future"
-    });
-}
+        if (Number.isNaN(updatedDate.getTime()) || updatedDate <= new Date()) {
+            return res.status(400).json({ message: "Reservation date and time must be in the future" });
+        }
+        if (!Number.isInteger(guestCount) || guestCount < 1) {
+            return res.status(400).json({ message: "Please enter a valid number of guests" });
+        }
+        if (!selectedTable) return res.status(404).json({ message: "Selected table not found" });
+        if (guestCount > selectedTable.capacity) {
+            return res.status(400).json({ message: `This table can accommodate only ${selectedTable.capacity} guests` });
+        }
 
-        const existingReservation = await Reservation.findOne({
+        const settings = await RestaurantSettings.findOne({ key: "main" }) ||
+            new RestaurantSettings({ key: "main" });
+        const weekday = updatedDate.toLocaleDateString("en-US", { weekday: "long" });
+        const weeklyHours = settings.weeklyHours.find((item) => item.day === weekday);
+        const dateKey = `${updatedDate.getFullYear()}-${String(updatedDate.getMonth() + 1).padStart(2, "0")}-${String(updatedDate.getDate()).padStart(2, "0")}`;
+        const specialDay = await SpecialDay.findOne({ date: dateKey });
+
+        if (specialDay?.isClosed || (!specialDay && (!weeklyHours || !weeklyHours.isOpen))) {
+            return res.status(400).json({ message: specialDay?.note || "The restaurant is closed on this day" });
+        }
+
+        const hours = specialDay
+            ? { openTime: specialDay.openTime, closeTime: specialDay.closeTime }
+            : weeklyHours;
+        const [openHour, openMinute] = hours.openTime.split(":").map(Number);
+        const [closeHour, closeMinute] = hours.closeTime.split(":").map(Number);
+        const bookingMinutes = updatedDate.getHours() * 60 + updatedDate.getMinutes();
+        const openingMinutes = openHour * 60 + openMinute;
+        const closingMinutes = closeHour * 60 + closeMinute;
+        const durationMinutes = settings.reservationDurationMinutes;
+        const bufferMinutes = settings.bufferMinutes;
+
+        if (
+            bookingMinutes < openingMinutes ||
+            bookingMinutes + durationMinutes + bufferMinutes > closingMinutes ||
+            bookingMinutes % settings.slotIntervalMinutes !== openingMinutes % settings.slotIntervalMinutes
+        ) {
+            return res.status(400).json({ message: "Selected time is outside the available reservation slots" });
+        }
+
+        const dayStart = new Date(updatedDate);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(updatedDate);
+        dayEnd.setHours(23, 59, 59, 999);
+        const existingReservations = await Reservation.find({
             _id: { $ne: id },
-            table: reservation.table,
-            date: updatedDate,
+            table: selectedTable._id,
+            date: { $gte: dayStart, $lte: dayEnd },
             status: { $ne: "cancelled" }
+        }).select("date durationMinutes bufferMinutes");
+
+        const requestedEnd = updatedDate.getTime() + (durationMinutes + bufferMinutes) * 60000;
+        const hasConflict = existingReservations.some((item) => {
+            const existingStart = new Date(item.date).getTime();
+            const existingDuration = item.durationMinutes || durationMinutes;
+            const existingBuffer = item.bufferMinutes ?? bufferMinutes;
+            const existingEnd = existingStart + (existingDuration + existingBuffer) * 60000;
+            return updatedDate.getTime() < existingEnd && requestedEnd > existingStart;
         });
-
-        if (existingReservation) {
-            return res.status(400).json({
-                message: "Table is already booked for this time"
-            });
+        if (hasConflict) {
+            return res.status(409).json({ message: "This table is no longer available at that time. Please choose another slot." });
         }
 
+        const pricingMode = reservation.pricingMode || "per_person";
+        const tablePrice = pricingMode === "full_table"
+            ? Number(selectedTable.fullTablePrice || 0)
+            : Number(selectedTable.perPersonPrice || 0) * guestCount;
+        const totalBookingAmount = Math.round((tablePrice + Number(settings.bookingFee || 0)) * 100) / 100;
+
+        reservation.table = selectedTable._id;
         reservation.date = updatedDate;
-
-        if (guests) {
-            reservation.guests = guests;
-        }
+        reservation.guests = guestCount;
+        reservation.durationMinutes = durationMinutes;
+        reservation.bufferMinutes = bufferMinutes;
+        reservation.tablePrice = tablePrice;
+        reservation.bookingFee = totalBookingAmount;
+        reservation.paymentStatus = reservation.paymentMethod === "pay_at_restaurant" || totalBookingAmount > 0
+            ? "pending"
+            : "not_required";
+        if (reservation.status === "confirmed") reservation.status = "pending";
 
         await reservation.save();
+        const updatedReservation = await Reservation.findById(id).populate("table");
 
-        res.json({
-            message: "Reservation updated successfully",
-            reservation
-        });
-
+        return res.json({ message: "Reservation updated successfully. It is pending restaurant approval.", reservation: updatedReservation });
     } catch (error) {
-        res.status(500).json({
-            message: "Server error",
-            error: error.message
-        });
+        console.error("Update reservation error:", error);
+        return res.status(500).json({ message: "Server error", error: error.message });
     }
 };
 
