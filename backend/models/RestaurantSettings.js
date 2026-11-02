@@ -48,6 +48,12 @@ const restaurantSettingsSchema = new mongoose.Schema(
             min: 15,
             max: 120
         },
+        bookingFee: {
+            type: Number,
+            default: 0,
+            min: 0,
+            max: 100000
+        },
         weeklyHours: {
             type: [weeklyHourSchema],
             default: [
