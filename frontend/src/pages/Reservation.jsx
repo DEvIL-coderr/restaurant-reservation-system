@@ -33,6 +33,7 @@ function Reservation() {
     const [slots, setSlots] = useState([]);
     const [selectedTime, setSelectedTime] = useState("");
     const [selectedTable, setSelectedTable] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("online");
     const [settings, setSettings] = useState(null);
     const [weeklyHours, setWeeklyHours] = useState([]);
     const [specialDays, setSpecialDays] = useState([]);
@@ -152,9 +153,16 @@ function Reservation() {
     const chooseTime = (slot) => {
         setSelectedTime(slot.time);
         setSelectedTable("");
+        setPaymentMethod("online");
     };
 
     const availableTables = slots.find((slot) => slot.time === selectedTime)?.tables || [];
+    const payAtRestaurantAvailable = Boolean(
+        settings?.payAtRestaurantEnabled && selectedTable &&
+        (settings.payAtRestaurantTables || []).some((tableId) => String(tableId._id || tableId) === String(selectedTable)) &&
+        selectedTime >= (settings.payAtRestaurantStartTime || "00:00") &&
+        selectedTime <= (settings.payAtRestaurantEndTime || "23:59")
+    );
 
     const handleReservation = async () => {
         if (!selectedTime || !selectedTable) {
@@ -174,7 +182,8 @@ function Reservation() {
                 body: JSON.stringify({
                     table: selectedTable,
                     date: `${date}T${selectedTime}`,
-                    guests: Number(guests)
+                    guests: Number(guests),
+                    paymentMethod
                 })
             });
             const data = await response.json();
@@ -352,7 +361,7 @@ function Reservation() {
                                             type="button"
                                             key={table._id}
                                             className={`table-option ${selectedTable === table._id ? "selected" : ""}`}
-                                            onClick={() => setSelectedTable(table._id)}
+                                            onClick={() => { setSelectedTable(table._id); setPaymentMethod("online"); }}
                                             style={{ textAlign: "left", cursor: "pointer" }}
                                         >
                                             <h3>Table {table.tableNumber}</h3>
