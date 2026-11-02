@@ -1,10 +1,16 @@
+const mongoose = require("mongoose");
 const Table = require("../models/Table");
 const Reservation = require("../models/Reservation");
 const SpecialDay = require("../models/SpecialDay");
 
 const addTable = async (req, res) => {
     try {
-        const { tableNumber, capacity, category } = req.body;
+        const { tableNumber, capacity, category, perPersonPrice = 0, fullTablePrice = 0 } = req.body;
+
+        if (!Number.isFinite(Number(perPersonPrice)) || Number(perPersonPrice) < 0 ||
+            !Number.isFinite(Number(fullTablePrice)) || Number(fullTablePrice) < 0) {
+            return res.status(400).json({ message: "Table prices must be valid non-negative amounts." });
+        }
 
         const existingTable = await Table.findOne({ tableNumber });
 
@@ -17,7 +23,9 @@ const addTable = async (req, res) => {
         const table = await Table.create({
             tableNumber,
             capacity,
-            category
+            category,
+            perPersonPrice: Number(perPersonPrice),
+            fullTablePrice: Number(fullTablePrice)
         });
 
         res.status(201).json({
@@ -50,9 +58,24 @@ const updateTable = async (req, res) => {
     try {
         const { id } = req.params;
 
+        const { tableNumber, capacity, category, status, perPersonPrice, fullTablePrice } = req.body;
+        const update = {};
+        if (tableNumber !== undefined) update.tableNumber = Number(tableNumber);
+        if (capacity !== undefined) update.capacity = Number(capacity);
+        if (category !== undefined) update.category = category;
+        if (status !== undefined) update.status = status;
+        if (perPersonPrice !== undefined) update.perPersonPrice = Number(perPersonPrice);
+        if (fullTablePrice !== undefined) update.fullTablePrice = Number(fullTablePrice);
+
+        if ([update.perPersonPrice, update.fullTablePrice].some((price) =>
+            price !== undefined && (!Number.isFinite(price) || price < 0)
+        )) {
+            return res.status(400).json({ message: "Table prices must be valid non-negative amounts." });
+        }
+
         const table = await Table.findByIdAndUpdate(
             id,
-            req.body,
+            update,
             { new: true, runValidators: true }
         );
 
@@ -102,7 +125,7 @@ const RestaurantSettings = require("../models/RestaurantSettings");
 
 const getAvailableTables = async (req, res) => {
     try {
-        const { date, guests, category } = req.query;
+        const { date, guests, category, excludeReservationId } = req.query;
 
         if (!date || !guests || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
             return res.status(400).json({
@@ -150,10 +173,15 @@ const getAvailableTables = async (req, res) => {
         const dayStart = new Date(`${date}T00:00:00`);
         const dayEnd = new Date(`${date}T23:59:59.999`);
 
-        const reservationList = await Reservation.find({
+        const reservationQuery = {
             date: { $gte: dayStart, $lte: dayEnd },
             status: { $ne: "cancelled" }
-        }).select("table date durationMinutes bufferMinutes");
+        };
+        if (excludeReservationId && mongoose.isValidObjectId(excludeReservationId)) {
+            reservationQuery._id = { $ne: excludeReservationId };
+        }
+        const reservationList = await Reservation.find(reservationQuery)
+            .select("table date durationMinutes bufferMinutes");
 
         const tableFilter = { capacity: { $gte: guestCount } };
         if (category) tableFilter.category = category;
