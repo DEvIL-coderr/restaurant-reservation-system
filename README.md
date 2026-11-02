@@ -22,6 +22,7 @@ A web-based application that allows customers to view table availability, make r
 - Modify or cancel reservations
 - Modified confirmed reservations return to pending status for administrator approval
 - Email notifications for new bookings, customer cancellations, and admin booking confirmations/cancellations
+- Automatic email reminders approximately 24 hours before confirmed reservations
 
 ### Administrator Features
 - Administrator login and role-based access
@@ -47,6 +48,7 @@ A web-based application that allows customers to view table availability, make r
 - REST API architecture
 - JSON Web Token (JWT) authentication
 - bcryptjs for password hashing
+- Nodemailer for SMTP email notifications
 
 ### Database
 - MongoDB
@@ -68,6 +70,9 @@ restaurant/
 │   ├── middleware/
 │   ├── models/
 │   ├── routes/
+│   ├── utils/
+│   │   ├── sendEmail.js
+│   │   └── reminderScheduler.js
 │   ├── createAdmin.js
 │   ├── server.js
 │   ├── package.json
@@ -75,13 +80,9 @@ restaurant/
 └── frontend/
     ├── public/
     ├── src/
-    │   ├── components/
-    │   ├── pages/
-    │   ├── App.jsx
-    │   ├── main.jsx
-    │   └── index.css
-    ├── package.json
-    └── .gitignore
+    ├── App.jsx
+    ├── main.jsx
+    └── index.css
 ```
 
 ## System Requirements
@@ -121,7 +122,7 @@ SMTP_PORT=587
 SMTP_SECURE=false
 SMTP_USER=your_email@gmail.com
 SMTP_PASS=your_16_character_gmail_app_password
-EMAIL_FROM=Restaurant Reservations <your_email@gmail.com>
+EMAIL_FROM="Restaurant Reservations <your_email@gmail.com>"
 ADMIN_EMAIL=admin_email@example.com
 ```
 
@@ -129,18 +130,21 @@ Do not commit the actual `.env` file or share your secrets publicly.
 
 Email notifications use Nodemailer and SMTP. For Gmail, enable 2-Step Verification on your Google account and create a Google **App Password**. Use that 16-character App Password as `SMTP_PASS` (not your normal Gmail password). Set `ADMIN_EMAIL` to the address that should receive new-booking alerts. If SMTP settings are missing or the mail provider is unavailable, reservations will still be saved; the backend logs the email issue.
 
+The backend also checks for upcoming **confirmed** reservations every 60 seconds. When a reservation is within the next 24 hours and its reminder has not been sent, the customer receives one reminder email. The reminder is marked as sent only after the SMTP helper reports a successful send. The scheduler runs while the backend server is running; it does not send reminders while the server is stopped.
+
 ### 3. Start the backend
 
-From the `backend` directory, run the start command defined in `backend/package.json`. For a typical Node.js setup, this may be:
+From the `backend` directory, run:
+
+```bash
+npm install
+npm run dev
+```
+
+For production, use:
 
 ```bash
 npm start
-```
-
-If the project uses a development script instead, run:
-
-```bash
-npm run dev
 ```
 
 The API is expected to run at:
@@ -194,11 +198,10 @@ Protected endpoints require a valid JWT bearer token. Administrative endpoints a
 
 ## Testing
 
-The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, and table management.
+The APIs can be tested using Postman. Test cases should cover registration, login, table availability, reservation creation, modification, cancellation, administrator approval, table management, and reminder emails. To test a 24-hour reminder without waiting a full day, create a confirmed test reservation for a time within the next 24 hours. The scheduler will send the reminder on its next check (within about 60 seconds). Delete or cancel the test reservation afterward if needed.
 
 ## Future Scope
 
-- Email or SMS reservation notifications
 - Online payment integration
 - Reservation analytics and reporting
 - Improved availability checks for overlapping reservation times
