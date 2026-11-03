@@ -71,7 +71,7 @@ function Home() {
 
                     <div className="home-buttons">
 
-                        {token ? (
+                        {isLoggedIn ? (
                             <>
                                 <Link
                                     to="/reservation"
