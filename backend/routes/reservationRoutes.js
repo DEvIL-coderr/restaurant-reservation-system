@@ -3,6 +3,7 @@ const express = require("express");
 const {
   createReservation,
   getMyReservations,
+  getPaymentReceipt,
   updateReservation,
   cancelReservation,
   getAllReservations,
@@ -23,6 +24,7 @@ router.post("/", protect, createReservation);
 router.get("/", protect, getMyReservations);
 
 router.get("/all", protect, adminOnly, getAllReservations);
+router.get("/:id/receipt", protect, getPaymentReceipt);
 
 router.post("/:id/payment/order", protect, createPaymentOrder);
 router.post("/:id/payment/verify", protect, verifyPayment);
