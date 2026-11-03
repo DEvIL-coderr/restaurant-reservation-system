@@ -5,6 +5,11 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const localDateKey = (date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
 const formatTime = (time) => { const parts = time.split(":").map(Number); return `${parts[0] % 12 || 12}:${String(parts[1]).padStart(2, "0")} ${parts[0] >= 12 ? "PM" : "AM"}`; };
 
+
+const escapeReceiptHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+})[character]);
+
 const loadRazorpayScript = () => new Promise((resolve) => {
     if (window.Razorpay) { resolve(true); return; }
     const existingScript = document.getElementById("razorpay-checkout-script");
@@ -255,6 +260,73 @@ function MyReservations() {
         } catch (error) {
             setMessage(error.message || "Unable to start payment.");
             setPaymentProcessingId(null);
+        }
+    };
+
+
+    const handleDownloadReceipt = async (reservation) => {
+        const printWindow = window.open("", "_blank", "width=850,height=700");
+        if (!printWindow) {
+            setMessage("Please allow pop-ups to open your payment receipt.");
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `http://localhost:5000/api/reservations/${reservation._id}/receipt`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const data = await response.json();
+            if (!response.ok || !data.receipt) {
+                throw new Error(data.message || "Unable to load payment receipt.");
+            }
+
+            const receipt = data.receipt;
+            const money = (amount) => `₹${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const safe = escapeReceiptHtml;
+            const reservationDate = new Date(receipt.reservationDate).toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" });
+            const paidDate = new Date(receipt.paidAt).toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" });
+
+            printWindow.document.open();
+            printWindow.document.write(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Receipt - ${safe(receipt.receiptNumber)}</title>
+<style>
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#30251e;background:#f7f3ee;margin:0;padding:32px}
+.receipt{max-width:720px;margin:0 auto;background:#fff;padding:42px;border:1px solid #e8dfd6}
+.header{text-align:center;border-bottom:2px solid #8b4513;padding-bottom:24px;margin-bottom:26px}
+.brand{font-size:27px;font-weight:700;color:#6f350f;margin:0 0 8px}.muted{color:#746b64;font-size:13px}
+h2{font-size:20px;margin:0 0 8px}.status{display:inline-block;background:#e7f5e9;color:#216b31;padding:7px 13px;border-radius:20px;font-size:12px;font-weight:bold;margin-top:12px}
+.meta{display:flex;justify-content:space-between;gap:18px;margin:20px 0 28px}.meta div{min-width:0}.label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#887d74;margin-bottom:6px}.value{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:14px 8px;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:600}
+.total td{font-size:18px;font-weight:700;border-bottom:0;padding-top:20px}.footer{border-top:1px solid #eee;margin-top:28px;padding-top:20px;text-align:center;color:#746b64;font-size:12px;line-height:1.6}
+.actions{text-align:center;margin:22px auto}.print-btn{background:#8b4513;color:white;border:0;border-radius:6px;padding:12px 22px;font-weight:bold;cursor:pointer}
+@media print{body{background:#fff;padding:0}.receipt{border:0;padding:20px;max-width:none}.actions{display:none}@page{size:A4;margin:15mm}}
+@media(max-width:600px){body{padding:10px}.receipt{padding:22px}.meta{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="receipt">
+<div class="header"><p class="brand">Restaurant Reservation</p><h2>Payment Receipt</h2><p class="muted">Thank you for your reservation.</p><span class="status">PAYMENT SUCCESSFUL</span></div>
+<div class="meta"><div><div class="label">Receipt number</div><div class="value">${safe(receipt.receiptNumber)}</div></div><div><div class="label">Payment date</div><div class="value">${safe(paidDate)}</div></div></div>
+<div class="meta"><div><div class="label">Billed to</div><div class="value">${safe(receipt.customerName)}</div><div class="muted">${safe(receipt.customerEmail)}</div></div><div><div class="label">Reservation</div><div class="value">Table ${safe(receipt.tableNumber)}</div><div class="muted">${safe(reservationDate)} · ${safe(receipt.guests)} guest(s)</div></div></div>
+<table><tbody>
+<tr><td>Full table reservation</td><td>${money(receipt.tablePrice)}</td></tr>
+<tr class="total"><td>Amount paid</td><td>${money(receipt.amountPaid)}</td></tr>
+</tbody></table>
+<div class="meta"><div><div class="label">Payment method</div><div class="value">${safe(receipt.paymentMethod)}</div></div><div><div class="label">Payment reference</div><div class="value">${safe(receipt.paymentReference)}</div></div></div>
+<div class="footer">This is a computer-generated receipt for your restaurant reservation payment.<br>Please keep this receipt for your records.</div>
+</div>
+<div class="actions"><button class="print-btn" onclick="window.print()">Print / Save as PDF</button></div>
+</body></html>`);
+            printWindow.document.close();
+            printWindow.focus();
+        } catch (error) {
+            printWindow.close();
+            setMessage(error.message || "Unable to generate payment receipt.");
         }
     };
 
@@ -586,6 +658,19 @@ function MyReservations() {
                                             onClick={() => handlePayment(reservation)}
                                         >
                                             {paymentProcessingId === reservation._id ? "Opening secure checkout..." : "Pay Table Booking Amount"}
+                                        </button>
+                                    </div>
+                                )}
+
+
+                                {reservation.paymentStatus === "paid" && (
+                                    <div className="reservation-actions">
+                                        <button
+                                            type="button"
+                                            className="save-button"
+                                            onClick={() => handleDownloadReceipt(reservation)}
+                                        >
+                                            Download Payment Receipt
                                         </button>
                                     </div>
                                 )}
