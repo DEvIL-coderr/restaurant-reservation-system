@@ -247,3 +247,19 @@ Developed as a Project-Based Learning project at Brainware University.
 - Online payment uses the saved reservation total and creates the Razorpay order on the backend. Use Razorpay Test Mode credentials in `backend/.env`; never commit the secret key.
 - When modifying a reservation, customers now choose a date on a calendar, check live available time slots, select an available table, and submit the change. The server rechecks opening hours, special closures, table capacity, and overlapping reservations.
 - A reservation that has already been paid cannot currently be modified online; contact the restaurant for assistance so a payment adjustment or refund can be handled safely.
+
+
+## Full-table-only pricing
+
+The reservation flow uses one price per table. Admins set the full-table booking price in Table Management. Customers reserve the whole table and are charged that table price, plus any separate restaurant-wide booking fee configured in Settings. The former per-person price input is no longer shown or used for new reservations.
+
+## Razorpay local setup and troubleshooting
+
+Add both Razorpay TEST MODE values to `backend/.env` (do not commit this file):
+
+```env
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_test_key_secret
+```
+
+Use the Key ID and Key Secret from the same Razorpay test-mode account. Do not add quotes or placeholder text. Save the file and restart the backend server after changing environment variables. If the payment endpoint responds with HTTP 503, its JSON response identifies which environment variable is missing. A browser warning about password autocomplete is unrelated to Razorpay.
