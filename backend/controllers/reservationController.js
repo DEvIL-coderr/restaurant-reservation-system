@@ -23,7 +23,7 @@ const escapeHtml = (value = "") =>
 
 const createReservation = async (req, res) => {
     try {
-        const { table, date, guests, pricingMode = "per_person" } = req.body;
+        const { table, date, guests } = req.body;
         const guestCount = Number(guests);
         const bookingDate = new Date(date);
 
@@ -111,13 +111,8 @@ const createReservation = async (req, res) => {
             });
         }
 
-        if (!["per_person", "full_table"].includes(pricingMode)) {
-            return res.status(400).json({ message: "Please choose a valid table pricing option." });
-        }
-
-        const tablePrice = pricingMode === "full_table"
-            ? Number(selectedTable.fullTablePrice || 0)
-            : Number(selectedTable.perPersonPrice || 0) * guestCount;
+        const pricingMode = "full_table";
+        const tablePrice = Number(selectedTable.fullTablePrice || 0);
         const totalBookingAmount = Math.round((tablePrice + Number(settings.bookingFee || 0)) * 100) / 100;
 
         const paymentMethod = req.body.paymentMethod === "pay_at_restaurant" ? "pay_at_restaurant" : "online";
@@ -356,10 +351,8 @@ const updateReservation = async (req, res) => {
             return res.status(409).json({ message: "This table is no longer available at that time. Please choose another slot." });
         }
 
-        const pricingMode = reservation.pricingMode || "per_person";
-        const tablePrice = pricingMode === "full_table"
-            ? Number(selectedTable.fullTablePrice || 0)
-            : Number(selectedTable.perPersonPrice || 0) * guestCount;
+        const pricingMode = "full_table";
+        const tablePrice = Number(selectedTable.fullTablePrice || 0);
         const totalBookingAmount = Math.round((tablePrice + Number(settings.bookingFee || 0)) * 100) / 100;
 
         reservation.table = selectedTable._id;
@@ -367,6 +360,7 @@ const updateReservation = async (req, res) => {
         reservation.guests = guestCount;
         reservation.durationMinutes = durationMinutes;
         reservation.bufferMinutes = bufferMinutes;
+        reservation.pricingMode = pricingMode;
         reservation.tablePrice = tablePrice;
         reservation.bookingFee = totalBookingAmount;
         reservation.paymentStatus = reservation.paymentMethod === "pay_at_restaurant" || totalBookingAmount > 0
@@ -388,7 +382,7 @@ const getAllReservations = async (req, res) => {
     try {
         const reservations = await Reservation.find()
             .populate("user", "name email phone")
-            .populate("table", "tableNumber capacity category perPersonPrice fullTablePrice");
+            .populate("table", "tableNumber capacity category fullTablePrice");
 
         res.json({
             reservations
