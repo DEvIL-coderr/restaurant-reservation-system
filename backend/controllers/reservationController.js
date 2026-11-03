@@ -547,10 +547,52 @@ const adminDeleteReservation = async (req, res) => {
     }
 };
 
+
+const getPaymentReceipt = async (req, res) => {
+    try {
+        const reservation = await Reservation.findOne({
+            _id: req.params.id,
+            user: req.userId
+        })
+            .populate("user", "name email")
+            .populate("table", "tableNumber capacity category");
+
+        if (!reservation) {
+            return res.status(404).json({ message: "Reservation not found" });
+        }
+
+        if (reservation.paymentStatus !== "paid") {
+            return res.status(400).json({ message: "A receipt is available only after payment is marked as paid." });
+        }
+
+        return res.json({
+            receipt: {
+                receiptNumber: `RS-${reservation._id.toString().slice(-8).toUpperCase()}`,
+                reservationId: reservation._id,
+                customerName: reservation.user?.name || "Customer",
+                customerEmail: reservation.user?.email || "",
+                tableNumber: reservation.table?.tableNumber || reservation.table?.category || "N/A",
+                guests: reservation.guests,
+                reservationDate: reservation.date,
+                tablePrice: Number(reservation.tablePrice || 0),
+                amountPaid: Number(reservation.bookingFee || 0),
+                paymentMethod: reservation.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online payment (Razorpay)",
+                paymentReference: reservation.razorpayPaymentId || "Paid at restaurant",
+                paidAt: reservation.paidAt || reservation.updatedAt,
+                paymentStatus: reservation.paymentStatus
+            }
+        });
+    } catch (error) {
+        console.error("Payment receipt error:", error.message);
+        return res.status(500).json({ message: "Unable to generate payment receipt." });
+    }
+};
+
 //exports
 module.exports = {
     createReservation,
     getMyReservations,
+    getPaymentReceipt,
     getAllReservations,
     cancelReservation,
     updateReservation,
