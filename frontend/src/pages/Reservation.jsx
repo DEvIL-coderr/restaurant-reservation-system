@@ -34,7 +34,6 @@ function Reservation() {
     const [selectedTime, setSelectedTime] = useState("");
     const [selectedTable, setSelectedTable] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("online");
-    const [pricingMode, setPricingMode] = useState("per_person");
     const [settings, setSettings] = useState(null);
     const [weeklyHours, setWeeklyHours] = useState([]);
     const [specialDays, setSpecialDays] = useState([]);
@@ -155,12 +154,11 @@ function Reservation() {
         setSelectedTime(slot.time);
         setSelectedTable("");
         setPaymentMethod("online");
-        setPricingMode("per_person");
     };
 
     const availableTables = slots.find((slot) => slot.time === selectedTime)?.tables || [];
     const selectedTableDetails = availableTables.find((table) => String(table._id) === String(selectedTable));
-    const selectedTablePrice = selectedTableDetails ? (pricingMode === "full_table" ? Number(selectedTableDetails.fullTablePrice || 0) : Number(selectedTableDetails.perPersonPrice || 0) * Number(guests || 0)) : 0;
+    const selectedTablePrice = Number(selectedTableDetails?.fullTablePrice || 0);
     const totalBookingAmount = Math.round((selectedTablePrice + Number(settings?.bookingFee || 0)) * 100) / 100;
 
     const payAtRestaurantAvailable = Boolean(
@@ -189,8 +187,7 @@ function Reservation() {
                     table: selectedTable,
                     date: `${date}T${selectedTime}`,
                     guests: Number(guests),
-                    paymentMethod,
-                    pricingMode
+                    paymentMethod
                 })
             });
             const data = await response.json();
@@ -235,7 +232,7 @@ function Reservation() {
                     <p className="home-tagline">YOUR TABLE IS WAITING</p>
                     <h1>Reserve Your Table</h1>
                     <p className="reservations-subtitle">
-                        Choose a date, explore available times and select the table that suits your group.
+                        Choose a date, explore available times and reserve the entire table for your group.
                     </p>
 
                     {message && <div className="admin-message" role="status">{message}</div>}
@@ -387,20 +384,10 @@ function Reservation() {
 
                             {selectedTable && (
                                 <div style={{ marginTop: "18px", padding: "16px", borderRadius: "10px", background: "#faf6f1", border: "1px solid #ead8c8" }}>
-                                    <strong>Choose your table pricing</strong>
-                                    <label style={{ display: "flex", gap: "9px", alignItems: "center", marginTop: "12px" }}>
-                                        <input type="radio" name="pricingMode" value="per_person" checked={pricingMode === "per_person"} onChange={() => setPricingMode("per_person")} />
-                                        Per person — ₹{Number(selectedTableDetails?.perPersonPrice || 0).toLocaleString("en-IN")} × {guests} guests = ₹{(Number(selectedTableDetails?.perPersonPrice || 0) * Number(guests || 0)).toLocaleString("en-IN")}
-                                    </label>
-                                    <label style={{ display: "flex", gap: "9px", alignItems: "center", marginTop: "10px" }}>
-                                        <input type="radio" name="pricingMode" value="full_table" checked={pricingMode === "full_table"} onChange={() => setPricingMode("full_table")} />
-                                        Full table — ₹{Number(selectedTableDetails?.fullTablePrice || 0).toLocaleString("en-IN")} for the entire table
-                                    </label>
-                                    <div style={{ marginTop: "13px", borderTop: "1px solid #e8d9cb", paddingTop: "12px" }}>
-                                        <div>Table price: ₹{selectedTablePrice.toLocaleString("en-IN")}</div>
-                                        {Number(settings?.bookingFee || 0) > 0 && <div>Additional reservation fee: ₹{Number(settings.bookingFee).toLocaleString("en-IN")}</div>}
-                                        <strong style={{ display: "block", marginTop: "6px" }}>Total due: ₹{totalBookingAmount.toLocaleString("en-IN")}</strong>
-                                    </div>
+                                    <strong>Full table booking price</strong>
+                                    <p style={{ margin: "8px 0" }}>₹{selectedTablePrice.toLocaleString("en-IN")} for the entire table</p>
+                                    {Number(settings?.bookingFee || 0) > 0 && <p>Additional reservation fee: ₹{Number(settings.bookingFee).toLocaleString("en-IN")}</p>}
+                                    <strong>Total due: ₹{totalBookingAmount.toLocaleString("en-IN")}</strong>
                                 </div>
                             )}
                             {selectedTable && payAtRestaurantAvailable && (
