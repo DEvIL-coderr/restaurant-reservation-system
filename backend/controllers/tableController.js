@@ -5,10 +5,9 @@ const SpecialDay = require("../models/SpecialDay");
 
 const addTable = async (req, res) => {
     try {
-        const { tableNumber, capacity, category, perPersonPrice = 0, fullTablePrice = 0 } = req.body;
+        const { tableNumber, capacity, category, fullTablePrice = 0 } = req.body;
 
-        if (!Number.isFinite(Number(perPersonPrice)) || Number(perPersonPrice) < 0 ||
-            !Number.isFinite(Number(fullTablePrice)) || Number(fullTablePrice) < 0) {
+        if (!Number.isFinite(Number(fullTablePrice)) || Number(fullTablePrice) < 0) {
             return res.status(400).json({ message: "Table prices must be valid non-negative amounts." });
         }
 
@@ -24,7 +23,6 @@ const addTable = async (req, res) => {
             tableNumber,
             capacity,
             category,
-            perPersonPrice: Number(perPersonPrice),
             fullTablePrice: Number(fullTablePrice)
         });
 
@@ -58,18 +56,16 @@ const updateTable = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const { tableNumber, capacity, category, status, perPersonPrice, fullTablePrice } = req.body;
+        const { tableNumber, capacity, category, status, fullTablePrice } = req.body;
         const update = {};
         if (tableNumber !== undefined) update.tableNumber = Number(tableNumber);
         if (capacity !== undefined) update.capacity = Number(capacity);
         if (category !== undefined) update.category = category;
         if (status !== undefined) update.status = status;
-        if (perPersonPrice !== undefined) update.perPersonPrice = Number(perPersonPrice);
         if (fullTablePrice !== undefined) update.fullTablePrice = Number(fullTablePrice);
 
-        if ([update.perPersonPrice, update.fullTablePrice].some((price) =>
-            price !== undefined && (!Number.isFinite(price) || price < 0)
-        )) {
+        if (update.fullTablePrice !== undefined &&
+            (!Number.isFinite(update.fullTablePrice) || update.fullTablePrice < 0)) {
             return res.status(400).json({ message: "Table prices must be valid non-negative amounts." });
         }
 
