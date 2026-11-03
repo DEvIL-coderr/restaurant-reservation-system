@@ -9,9 +9,15 @@ const getOwnedReservation = async (id, userId) => {
 
 const createPaymentOrder = async (req, res) => {
     try {
-        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        const keyId = String(process.env.RAZORPAY_KEY_ID || "").trim();
+        const keySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
+        const missingKeys = [];
+        if (!keyId) missingKeys.push("RAZORPAY_KEY_ID");
+        if (!keySecret) missingKeys.push("RAZORPAY_KEY_SECRET");
+        if (missingKeys.length) {
             return res.status(503).json({
-                message: "Online payments are not configured yet. Add Razorpay test keys to the backend .env file."
+                message: "Razorpay configuration is incomplete. Add the missing variable(s) to backend/.env and restart the backend.",
+                missing: missingKeys
             });
         }
 
@@ -37,12 +43,6 @@ const createPaymentOrder = async (req, res) => {
         const amountInPaise = Math.round(Number(reservation.bookingFee || 0) * 100);
         if (amountInPaise <= 0) {
             return res.status(400).json({ message: "No payment is due for this reservation." });
-        }
-
-        const keyId = String(process.env.RAZORPAY_KEY_ID || "").trim();
-        const keySecret = String(process.env.RAZORPAY_KEY_SECRET || "").trim();
-        if (!keyId || !keySecret) {
-            return res.status(503).json({ message: "Razorpay keys are missing. Check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend/.env." });
         }
 
         const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
