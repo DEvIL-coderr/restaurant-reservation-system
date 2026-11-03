@@ -14,7 +14,6 @@ function AdminTables() {
     const [capacity, setCapacity] = useState("");
     const [category, setCategory] = useState("Indoor");
     const [status, setStatus] = useState("available");
-    const [perPersonPrice, setPerPersonPrice] = useState("0");
     const [fullTablePrice, setFullTablePrice] = useState("0");
 
     const [editingId, setEditingId] = useState(null);
@@ -68,7 +67,6 @@ function AdminTables() {
         setCapacity("");
         setCategory("Indoor");
         setStatus("available");
-        setPerPersonPrice("0");
         setFullTablePrice("0");
         setEditingId(null);
     };
@@ -83,7 +81,6 @@ function AdminTables() {
             capacity: Number(capacity),
             category,
             status,
-            perPersonPrice: Number(perPersonPrice),
             fullTablePrice: Number(fullTablePrice)
         };
 
@@ -131,7 +128,6 @@ function AdminTables() {
         setCapacity(table.capacity);
         setCategory(table.category);
         setStatus(table.status);
-        setPerPersonPrice(String(table.perPersonPrice ?? 0));
         setFullTablePrice(String(table.fullTablePrice ?? 0));
 
         window.scrollTo({
@@ -355,12 +351,6 @@ function AdminTables() {
                                 </div>
 
                                 <div>
-                                    <label>Per-person price (₹)</label>
-                                    <input type="number" min="0" step="0.01" value={perPersonPrice}
-                                        onChange={(e) => setPerPersonPrice(e.target.value)} required />
-                                </div>
-
-                                <div>
                                     <label>Full-table price (₹)</label>
                                     <input type="number" min="0" step="0.01" value={fullTablePrice}
                                         onChange={(e) => setFullTablePrice(e.target.value)} required />
@@ -496,9 +486,6 @@ function AdminTables() {
                                                         {table.capacity} guests
                                                     </span>
 
-                                                    <span>
-                                                        Per person: ₹{Number(table.perPersonPrice || 0).toLocaleString("en-IN")}
-                                                    </span>
                                                     <span>
                                                         Full table: ₹{Number(table.fullTablePrice || 0).toLocaleString("en-IN")}
                                                     </span>
