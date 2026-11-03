@@ -5,7 +5,6 @@ const tableSchema = new mongoose.Schema(
         tableNumber: { type: Number, required: true, unique: true },
         capacity: { type: Number, required: true, min: 1 },
         category: { type: String, required: true },
-        perPersonPrice: { type: Number, default: 0, min: 0 },
         fullTablePrice: { type: Number, default: 0, min: 0 },
         status: {
             type: String,
