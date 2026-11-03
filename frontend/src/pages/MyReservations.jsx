@@ -315,6 +315,7 @@ table{width:100%;border-collapse:collapse;margin-top:12px}td{padding:14px 8px;bo
 <div class="meta"><div><div class="label">Billed to</div><div class="value">${safe(receipt.customerName)}</div><div class="muted">${safe(receipt.customerEmail)}</div></div><div><div class="label">Reservation</div><div class="value">Table ${safe(receipt.tableNumber)}</div><div class="muted">${safe(reservationDate)} · ${safe(receipt.guests)} guest(s)</div></div></div>
 <table><tbody>
 <tr><td>Full table reservation</td><td>${money(receipt.tablePrice)}</td></tr>
+<tr><td>Booking fee</td><td>${money(receipt.additionalFee)}</td></tr>
 <tr class="total"><td>Amount paid</td><td>${money(receipt.amountPaid)}</td></tr>
 </tbody></table>
 <div class="meta"><div><div class="label">Payment method</div><div class="value">${safe(receipt.paymentMethod)}</div></div><div><div class="label">Payment reference</div><div class="value">${safe(receipt.paymentReference)}</div></div></div>
