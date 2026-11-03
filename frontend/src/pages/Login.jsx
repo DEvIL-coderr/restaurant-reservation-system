@@ -60,6 +60,7 @@ function Login() {
           <input
             name="email"
             type="email"
+            autoComplete="username"
             placeholder="Email Address"
             value={form.email}
             onChange={handleChange}
@@ -69,6 +70,7 @@ function Login() {
           <input
             name="password"
             type="password"
+            autoComplete="current-password"
             placeholder="Password"
             value={form.password}
             onChange={handleChange}
