@@ -37,7 +37,7 @@ const reservationSchema = new mongoose.Schema(
         pricingMode: {
             type: String,
             enum: ["per_person", "full_table"],
-            default: "per_person"
+            default: "full_table"
         },
 
         tablePrice: {
