@@ -188,7 +188,10 @@ function MyReservations() {
                 }
             );
             const orderData = await orderResponse.json();
-            if (!orderResponse.ok) throw new Error(orderData.message || orderData.error || "Could not create Razorpay order");
+            if (!orderResponse.ok) {
+                const missing = Array.isArray(orderData.missing) ? ` Missing: ${orderData.missing.join(", ")}.` : "";
+                throw new Error((orderData.message || orderData.error || "Could not create Razorpay order") + missing);
+            }
             if (!window.Razorpay) throw new Error("Razorpay Checkout did not load. Disable script blockers and try again.");
             if (!orderData.keyId || !orderData.orderId || Number(orderData.amount) <= 0) {
                 throw new Error("Razorpay returned incomplete order details. Check backend test keys and booking amount.");
@@ -200,7 +203,7 @@ function MyReservations() {
                 amount: Number(orderData.amount),
                 currency: orderData.currency,
                 name: "Restaurant Reservation",
-                description: `Booking fee for table ${reservation.table?.tableNumber || ""}`,
+                description: `Full table reservation payment for table ${reservation.table?.tableNumber || ""}`,
                 order_id: orderData.orderId,
                 prefill: {
                     name: user.name || "",
@@ -582,7 +585,7 @@ function MyReservations() {
                                             disabled={paymentProcessingId === reservation._id}
                                             onClick={() => handlePayment(reservation)}
                                         >
-                                            {paymentProcessingId === reservation._id ? "Opening secure checkout..." : "Pay Booking Fee"}
+                                            {paymentProcessingId === reservation._id ? "Opening secure checkout..." : "Pay Table Booking Amount"}
                                         </button>
                                     </div>
                                 )}
