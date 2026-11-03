@@ -2,6 +2,15 @@ import { Link } from "react-router-dom";
 
 function Home() {
     const token = localStorage.getItem("token");
+    let isLoggedIn = false;
+
+    try {
+        const user = JSON.parse(localStorage.getItem("user") || "null");
+        const payload = token ? JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) : null;
+        isLoggedIn = Boolean(token && user && payload && (!payload.exp || payload.exp * 1000 > Date.now()));
+    } catch {
+        isLoggedIn = false;
+    }
 
     return (
         <div className="page">
@@ -15,7 +24,7 @@ function Home() {
                 <nav className="nav-links">
                     <Link to="/">Home</Link>
 
-                    {token ? (
+                    {isLoggedIn ? (
     <>
         <Link to="/reservation">Reserve</Link>
         <Link to="/reservations">My Bookings</Link>
