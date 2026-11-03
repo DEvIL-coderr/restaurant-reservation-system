@@ -371,7 +371,6 @@ function Reservation() {
                                             <h3>Table {table.tableNumber}</h3>
                                             <p>Capacity: {table.capacity} guests</p>
                                             <p>Category: {table.category}</p>
-                                            <p>Per person: ₹{Number(table.perPersonPrice || 0).toLocaleString("en-IN")}</p>
                                             <p>Full table: ₹{Number(table.fullTablePrice || 0).toLocaleString("en-IN")}</p>
                                             <span className="table-status">Available</span>
                                         </button>
