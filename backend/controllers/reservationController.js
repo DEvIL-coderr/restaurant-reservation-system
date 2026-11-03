@@ -575,6 +575,7 @@ const getPaymentReceipt = async (req, res) => {
                 guests: reservation.guests,
                 reservationDate: reservation.date,
                 tablePrice: Number(reservation.tablePrice || 0),
+                additionalFee: Math.max(0, Number(reservation.bookingFee || 0) - Number(reservation.tablePrice || 0)),
                 amountPaid: Number(reservation.bookingFee || 0),
                 paymentMethod: reservation.paymentMethod === "pay_at_restaurant" ? "Pay at restaurant" : "Online payment (Razorpay)",
                 paymentReference: reservation.razorpayPaymentId || "Paid at restaurant",
